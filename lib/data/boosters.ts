@@ -5,6 +5,7 @@ import {ObjectId} from "bson";
 export async function createBooster(booster: Omit<Booster, 'id' | 'createdAt'>): Promise<Booster> {
   const result = await db.collection<BoosterDb>('boosters').insertOne({
     gameId: new ObjectId(booster.gameId),
+    userId: new ObjectId(booster.userId),
     setCode: booster.setCode,
     lang: booster.lang,
     type: booster.type,
@@ -32,7 +33,8 @@ export async function getBoosters({gameId, page = 0, limit = 20, offset = 0,}: {
   }).skip(offset * page).limit(limit).toArray();
 
   return boosters.map((booster) => ({
-    gameId: gameId,
+    gameId: booster.gameId.toString(),
+    userId: booster.userId.toString(),
     setCode: booster.setCode,
     lang: booster.lang,
     type: booster.type,

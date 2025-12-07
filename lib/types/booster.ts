@@ -1,7 +1,10 @@
-import {Game, GameDb} from "@/lib/types/game";
+import {Game} from "@/lib/types/game";
+import {User} from "@/lib/types/user";
+import {ObjectId} from "bson";
 
 export type Booster = {
   gameId: Game['id'];
+  userId: User['id'];
   setCode: string;
   lang: string;
   type: string;
@@ -16,7 +19,8 @@ export type Booster = {
 };
 
 export type BoosterDb = {
-  gameId: GameDb['_id'];
+  gameId: ObjectId;
+  userId: ObjectId;
   setCode: string;
   lang: string;
   type: string;
