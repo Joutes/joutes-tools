@@ -23,14 +23,19 @@ export async function createBooster(booster: Omit<Booster, 'id' | 'createdAt'>):
 }
 
 export async function getBoosters({gameId, page = 0, limit = 20, offset = 0,}: {
-  gameId: string;
+  gameId?: string;
   page?: number;
   limit?: number;
   offset?: number;
 }): Promise<Booster[]> {
-  const boosters = await db.collection<BoosterDb>('boosters').find({
-    gameId: new ObjectId(gameId),
-  }).skip(offset * page).limit(limit).toArray();
+  const query: {
+    gameId?: ObjectId;
+  } = {};
+  if (gameId) {
+    query['gameId'] = new ObjectId(gameId);
+  }
+
+  const boosters = await db.collection<BoosterDb>('boosters').find(query).skip(offset * page).limit(limit).toArray();
 
   return boosters.map((booster) => ({
     gameId: booster.gameId.toString(),
