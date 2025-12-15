@@ -10,7 +10,7 @@ export async function createBooster(booster: Omit<Booster, 'id' | 'createdAt'>):
     lang: booster.lang,
     type: booster.type,
     cards: booster.cards,
-    price: booster.price,
+    price: booster.value,
     archived: booster.archived,
     createdAt: new Date(),
   });
@@ -44,7 +44,7 @@ export async function getBoosters({gameId, page = 0, limit = 20, offset = 0,}: {
     lang: booster.lang,
     type: booster.type,
     cards: booster.cards,
-    price: booster.price,
+    value: booster.price,
     archived: booster.archived,
     createdAt: booster.createdAt.toISOString(),
     id: booster._id.toString(),
