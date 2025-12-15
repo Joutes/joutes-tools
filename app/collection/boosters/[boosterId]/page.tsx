@@ -23,7 +23,7 @@ export default async function BoosterDetailsPage({ params }: { params: Promise<{
         collectorNumber: '1',
         foil: true,
         imageUrl: 'https://tcgplayer-cdn.tcgplayer.com/product/653136_400w.jpg',
-      }
+      },
     ],
     type: 'PLAY_BOOSTER',
     userId: '',

@@ -20,7 +20,11 @@ type Card = {
   imageUrl?: string;
 };
 
-export default function AddCardBar({ setCode, lang, addCard }: { setCode: string; lang: string; addCard: (({ setCode, collectorNumber }: { setCode: string; collectorNumber: string }) => Promise<void>) }) {
+export default function AddCardBar({setCode, lang, addCard}: {
+  setCode: string;
+  lang: string;
+  addCard: (({setCode, collectorNumber}: { setCode: string; collectorNumber: string }) => Promise<void>)
+}) {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [searchResults, setSearchResults] = useState<Card[]>([]);
 
@@ -31,7 +35,7 @@ export default function AddCardBar({ setCode, lang, addCard }: { setCode: string
   async function search(): Promise<Card[]> {
     const index = client.index<Card>('cards-riftbound');
 
-    const queryOptions: { filter: string[] } = { filter: [] };
+    const queryOptions: { filter: string[] } = {filter: []};
     let queryString = "";
 
     if (searchQuery.includes(' lang:')) {
@@ -77,8 +81,6 @@ export default function AddCardBar({ setCode, lang, addCard }: { setCode: string
       }
     }
 
-    console.log(queryOptions)
-
     const result = await index.search(queryString, queryOptions);
 
     return result.hits;
@@ -103,9 +105,42 @@ export default function AddCardBar({ setCode, lang, addCard }: { setCode: string
     }
   }, [searchQuery]);
 
+  console.log(searchResults)
+  console.log(searchQuery);
+
   return (
     <div>
+      <form onSubmit={handleSearch}>
+        <Command onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}>
+          <div className="flex items-center px-2">
+            <SearchIcon className="mr-2"/>
+            <CommandInput
+              value={searchQuery}
+              placeholder="Rechercher (ex: cn:123, set:ABC, * pour toutes)"
+            />
+          </div>
 
+          <CommandList>
+            {searchResults.length === 0 && searchQuery.length > 0 ? (
+              <CommandItem disabled>
+                <CircleAlertIcon className="mr-2"/>
+                Aucun résultat
+              </CommandItem>
+            ) : (
+              <CommandGroup>
+                {searchResults.map((item) => (
+                  <CommandItem key={item.id} onSelect={() => selectItem(item)}>
+                    <div>
+                      <div>{item.name} — {item.collectorNumber}</div>
+                      <div className="text-sm text-muted-foreground">{item.setCode}</div>
+                    </div>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
+          </CommandList>
+        </Command>
+      </form>
     </div>
   );
 }

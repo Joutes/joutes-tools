@@ -25,10 +25,11 @@ export async function importCards() {
 
       collectorNumber: parseInt(card.number?.split('/')[0] ?? '0'),
       setCode: sets[card.set.id]?.code ?? '???',
+      lang: 'en',
     };
   });
 
-  const tasks =  meilisearch.index('cards_riftbound').addDocumentsInBatches(cardsSanitized, 100);
+  const tasks =  meilisearch.index('cards-riftbound').addDocumentsInBatches(cardsSanitized, 100);
 
   await Promise.all(tasks);
 
