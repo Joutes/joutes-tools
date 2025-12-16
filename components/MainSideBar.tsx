@@ -17,7 +17,6 @@ const collectionMenu = [
     },
 ];
 
-
 export async function MainSideBar() {
     const games = await db.collection("games").find().toArray();
     const activeGame = games[0];
@@ -53,7 +52,7 @@ export async function MainSideBar() {
                                 </DropdownMenuLabel>
                                 {games.map((game, index) => (
                                     <DropdownMenuItem
-                                        key={game.name}
+                                        key={game._id.toString()}
                                         className="gap-2 p-2"
                                     >
                                         <div className="flex size-6 items-center justify-center rounded-xs border">
