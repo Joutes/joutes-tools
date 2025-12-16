@@ -3,7 +3,7 @@
 import cards from '@/data/riftbound/cards.json';
 import meilisearch from "@/lib/meilisearch";
 
-const sets = {
+const sets: { [setName: string]: { code: string } } = {
   'origins': {
     code: 'OGN',
   },
