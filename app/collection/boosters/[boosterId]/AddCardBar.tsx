@@ -1,38 +1,25 @@
 'use client';
 
 import {MeiliSearch} from "meilisearch";
-import React, {FormEvent, useEffect, useState} from "react";
-import {CircleAlertIcon, SearchIcon} from "lucide-react";
-import {Command, CommandGroup, CommandInput, CommandItem, CommandList} from "@/components/ui/command";
+import React, {useEffect, useState} from "react";
+import {Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList} from "@/components/ui/command";
+import {BoosterCard} from "@/lib/types/booster";
+import {addCardAction} from "@/app/collection/boosters/action";
 
 const client = new MeiliSearch({
   host: 'http://localhost:7700',
 });
 
-type Card = {
-  id: string;
-  name: string;
-  collectorNumber: string;
-  setCode: string;
-  price?: string;
-  foilPrice?: string;
-  imageUrl?: string;
-};
-
-export default function AddCardBar({setCode, lang, addCard}: {
+export default function AddCardBar({boosterId, setCode, lang}: {
+  boosterId: string;
   setCode: string;
   lang: string;
-  addCard: (({setCode, collectorNumber}: { setCode: string; collectorNumber: string }) => Promise<void>)
 }) {
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [searchResults, setSearchResults] = useState<Card[]>([]);
+  const [searchResults, setSearchResults] = useState<BoosterCard[]>([]);
 
-  function handleSearch(event: FormEvent<HTMLFormElement>) {
-    event?.preventDefault();
-  }
-
-  async function search(): Promise<Card[]> {
-    const index = client.index<Card>('cards-riftbound');
+  async function search(): Promise<BoosterCard[]> {
+    const index = client.index<BoosterCard>('cards-riftbound');
 
     const queryOptions: { filter: string[] } = {filter: []};
     let queryString = "";
@@ -73,7 +60,7 @@ export default function AddCardBar({setCode, lang, addCard}: {
       const queryNumber = parseInt(searchQuery);
       if (!isNaN(queryNumber)) {
         queryOptions.filter.push(
-          `collectorNumber = ${queryNumber}`,
+          `collectorNumber CONTAINS "${queryNumber}"`,
         );
       } else {
         queryString = searchQuery;
@@ -85,12 +72,15 @@ export default function AddCardBar({setCode, lang, addCard}: {
     return result.hits;
   }
 
-  function selectItem(item: Card) {
+  function selectItem(item: BoosterCard) {
     console.log("selectItem", item);
 
-    addCard({
+    addCardAction(boosterId, {
+      id: item.id,
       setCode: item.setCode,
       collectorNumber: item.collectorNumber,
+      name: item.name,
+      image: item.image,
     }).then(() => {
       setSearchQuery("");
     });
@@ -104,42 +94,31 @@ export default function AddCardBar({setCode, lang, addCard}: {
     }
   }, [searchQuery]);
 
-  console.log(searchResults)
-  console.log(searchQuery);
-
   return (
     <div>
-      <form onSubmit={handleSearch}>
-        <Command onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}>
-          <div className="flex items-center px-2">
-            <SearchIcon className="mr-2"/>
-            <CommandInput
-              value={searchQuery}
-              placeholder="Rechercher (ex: cn:123, set:ABC, * pour toutes)"
-            />
-          </div>
-
-          <CommandList>
-            {searchResults.length === 0 && searchQuery.length > 0 ? (
-              <CommandItem disabled>
-                <CircleAlertIcon className="mr-2"/>
-                Aucun résultat
+      <Command  shouldFilter={false} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)} className="rounded-lg border shadow-md md:min-w-[450px]">
+        <CommandInput
+          autoFocus
+          value={searchQuery}
+          placeholder="Rechercher (ex: cn:123, set:ABC, * pour toutes)"
+        />
+        <CommandList>
+          <CommandEmpty>Aucun résultat</CommandEmpty>
+          <CommandGroup>
+            {searchResults.map((item) => (
+              <CommandItem key={item.id} onSelect={() => selectItem(item)} value={item.id}>
+                <div className="flex flex-row items-center gap-4">
+                  <img src={item.image} alt={item.name} className="w-24" />
+                  <div>
+                    <div>{item.name}</div>
+                    <div className="text-sm text-muted-foreground">{item.setCode} #{item.collectorNumber}</div>
+                  </div>
+                </div>
               </CommandItem>
-            ) : (
-              <CommandGroup>
-                {searchResults.map((item) => (
-                  <CommandItem key={item.id} onSelect={() => selectItem(item)}>
-                    <div>
-                      <div>{item.name} — {item.collectorNumber}</div>
-                      <div className="text-sm text-muted-foreground">{item.setCode}</div>
-                    </div>
-                  </CommandItem>
-                ))}
-              </CommandGroup>
-            )}
-          </CommandList>
-        </Command>
-      </form>
+            ))}
+          </CommandGroup>
+        </CommandList>
+      </Command>
     </div>
   );
 }

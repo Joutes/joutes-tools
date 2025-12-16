@@ -1,16 +1,16 @@
-import {ChevronLeftIcon} from "lucide-react";
+import {ChevronLeftIcon, RefreshCcw, Trash} from "lucide-react";
 import Link from "next/link";
 import {langToFlag} from "@/lib/langs";
 import {Button} from "@/components/ui/button";
 import CardCard from "@/app/collection/boosters/[boosterId]/CardCard";
-import {Booster} from "@/lib/types/booster";
 import AddCardBar from "@/app/collection/boosters/[boosterId]/AddCardBar";
 import {getBooster} from "@/lib/data/boosters";
 import {auth} from "@/lib/auth";
 import {headers} from "next/headers";
+import {DuplicateBoosterButton} from "@/app/collection/boosters/[boosterId]/components";
 
-export default async function BoosterDetailsPage({ params }: { params: Promise<{ boosterId: string }> }) {
-  const { boosterId } = await params;
+export default async function BoosterDetailsPage({params}: { params: Promise<{ boosterId: string }> }) {
+  const {boosterId} = await params;
   const session = await auth.api.getSession({
     headers: await headers(),
   })
@@ -19,36 +19,6 @@ export default async function BoosterDetailsPage({ params }: { params: Promise<{
 
   if (!session || !booster || booster.userId !== session.user.id) {
     return <div>Booster not found</div>;
-  }
-
-  const boosterLegacy: Booster = {
-    id: boosterId,
-    lang: 'fr',
-    setCode: 'OGN',
-    gameId: '',
-    value: '12.34',
-    cards: [
-      {
-        id: 'card1',
-        name: 'Annie - Fiery',
-        setCode: 'OGS',
-        collectorNumber: '1',
-        foil: true,
-        imageUrl: 'https://tcgplayer-cdn.tcgplayer.com/product/653136_400w.jpg',
-      },
-    ],
-    type: 'PLAY_BOOSTER',
-    userId: '',
-    archived: false,
-    createdAt: new Date().toISOString(),
-  };
-
-  async function addCard({ setCode, collectorNumber }: { setCode: string; collectorNumber: string }) {
-    'use server';
-
-    if (!booster) {
-      throw new Error('Booster not found');
-    }
   }
 
   return (
@@ -68,17 +38,25 @@ export default async function BoosterDetailsPage({ params }: { params: Promise<{
 
           <h2 className="text-lg font-semibold">{booster.cards.length} Cartes</h2>
 
-          <div className="space-x-4">
-            <Button>Refresh prices</Button>
-            <Button>Delete booster</Button>
+          <div className="space-x-4 items-center">
+            <Button>
+              <RefreshCcw className="size-4"/>
+              Refresh prices
+            </Button>
+            <Button>
+              <Trash className="size-4"/>
+              Delete booster
+            </Button>
+            <DuplicateBoosterButton
+              booster={{gameId: booster.gameId, lang: booster.lang, type: booster.type, setCode: booster.setCode}}/>
           </div>
         </div>
 
         <div className="py-8">
           <AddCardBar
+            boosterId={booster.id}
             setCode={booster.setCode}
             lang={booster.lang ?? 'en'}
-            addCard={addCard}
           />
         </div>
 

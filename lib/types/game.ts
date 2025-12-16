@@ -4,4 +4,6 @@ export type Game = {
   banner?: string | null;
   description: string;
   name: string;
+  defaultSet?: string;
+  defaultBoosterType?: string;
 };

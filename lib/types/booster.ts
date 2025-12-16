@@ -7,8 +7,8 @@ export type BoosterCard = {
   name: string;
   setCode: string;
   collectorNumber: string;
-  foil: boolean;
-  imageUrl: string;
+  foil?: boolean;
+  image: string;
   price?: string;
   newInCollection?: boolean;
 };

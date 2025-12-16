@@ -1,6 +1,6 @@
 "use client";
 
-import {useState, useTransition} from "react";
+import {useEffect, useState, useTransition} from "react";
 import {
   Dialog,
   DialogContent,
@@ -22,6 +22,7 @@ import {
 import {Game} from "@/lib/types/game";
 import {createBoosterAction} from "./action";
 import {langToFlag} from "@/lib/langs";
+import useGame from "@/hooks/use-game";
 
 type Props = {
   games: Game[];
@@ -62,11 +63,12 @@ const LANGUAGES = [
 ];
 
 export function CreateBoosterDialog({games}: Props) {
+  const gameContext = useGame();
   const [open, setOpen] = useState(false);
-  const [selectedGameId, setSelectedGameId] = useState<string>("");
+  const [selectedGameId, setSelectedGameId] = useState<string>(gameContext.game.id);
   const [selectedType, setSelectedType] = useState<string>("");
   const [setCode, setSetCode] = useState<string>("");
-  const [selectedLang, setSelectedLang] = useState<string>("");
+  const [selectedLang, setSelectedLang] = useState<string>("en");
   const [isPending, startTransition] = useTransition();
 
   const selectedGame = games.find((g) => g.id === selectedGameId);
@@ -78,19 +80,28 @@ export function CreateBoosterDialog({games}: Props) {
     ? BOOSTER_TYPES.riftbound
     : [];
 
+  useEffect(() => {
+    if (selectedGame) {
+      if (selectedGame.defaultBoosterType) {
+        setSelectedType(selectedGame.defaultBoosterType);
+      } else {
+        setSelectedType("");
+      }
+
+      if (selectedGame.defaultSet) {
+        setSetCode(selectedGame.defaultSet);
+      } else {
+        setSetCode("");
+      }
+    }
+  }, [selectedGame]);
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
 
     startTransition(async () => {
       const result = await createBoosterAction(formData);
-      if (result.success) {
-        setOpen(false);
-        setSelectedGameId("");
-        setSelectedType("");
-        setSetCode("");
-        setSelectedLang("");
-      }
     });
   };
 
@@ -205,7 +216,7 @@ export function CreateBoosterDialog({games}: Props) {
             >
               Annuler
             </Button>
-            <Button type="submit" disabled={isPending}>
+            <Button autoFocus type="submit" disabled={isPending}>
               {isPending ? "Création..." : "Créer"}
             </Button>
           </DialogFooter>

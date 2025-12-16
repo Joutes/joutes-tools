@@ -1,10 +1,11 @@
 "use server";
 
-import {Booster} from "@/lib/types/booster";
+import {Booster, BoosterCard} from "@/lib/types/booster";
 import {revalidatePath} from "next/cache";
 import {auth} from "@/lib/auth";
 import {headers} from "next/headers";
-import {createBooster} from "@/lib/data/boosters";
+import {addCardToBoster, createBooster, getBooster, removeCardFromBooster} from "@/lib/data/boosters";
+import {redirect} from "next/navigation";
 
 export async function createBoosterAction(formData: FormData) {
   const gameId = formData.get("gameId") as string;
@@ -33,9 +34,45 @@ export async function createBoosterAction(formData: FormData) {
     archived: false,
   };
 
-  await createBooster(booster);
+  const created = await createBooster(booster);
 
   revalidatePath("/collection/boosters");
-  
-  return {success: true};
+  revalidatePath("/collection/boosters/" + created.id);
+  redirect(`/collection/boosters/${created.id}`);
+}
+
+export async function removeCardFromBoosterAction(boosterId: string, cardId: string) {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+  if (!session?.user?.id) {
+    throw new Error("Utilisateur non authentifié");
+  }
+
+  const booster = await getBooster(boosterId);
+  if (!booster || booster.userId !== session.user.id) {
+    throw new Error("Booster non trouvé ou accès refusé");
+  }
+
+  await removeCardFromBooster(boosterId, cardId);
+
+  revalidatePath(`/collection/boosters/${boosterId}`);
+}
+
+export async function addCardAction(boosterId: string, card: BoosterCard) {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+  if (!session?.user?.id) {
+    throw new Error("Utilisateur non authentifié");
+  }
+
+  const booster = await getBooster(boosterId);
+  if (!booster || booster.userId !== session.user.id) {
+    throw new Error("Booster non trouvé ou accès refusé");
+  }
+
+  await addCardToBoster(booster.id, card);
+
+  revalidatePath(`/collection/boosters/${boosterId}`);
 }

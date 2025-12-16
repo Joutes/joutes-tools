@@ -2,6 +2,7 @@
 
 import cards from '@/data/riftbound/cards.json';
 import meilisearch from "@/lib/meilisearch";
+import {BoosterCard} from "@/lib/types/booster";
 
 const sets: { [setName: string]: { code: string } } = {
   'origins': {
@@ -15,23 +16,24 @@ const sets: { [setName: string]: { code: string } } = {
 export async function importCards() {
   console.log(`Importing ${cards.length} Riftbound cards...`);
 
-  // push cards to meilisearch
-
-  const cardsSanitized = cards.map((card) => {
+  const cardsSanitized: BoosterCard[] = cards.map((card) => {
     return {
       ...card,
-      id: card.id,
+      id: card.id.replaceAll('*', '-s-'),
       image: card.images.small,
 
-      collectorNumber: parseInt(card.number?.split('/')[0] ?? '0'),
+      collectorNumber: card.number?.split('/')[0] ?? '0',
       setCode: sets[card.set.id]?.code ?? '???',
       lang: 'en',
     };
   });
 
-  const tasks =  meilisearch.index('cards-riftbound').addDocumentsInBatches(cardsSanitized, 100);
+  for (let i = 0; i < cardsSanitized.length; i += 5000) {
+    const batch = cardsSanitized.slice(i, i + 5000);
+    console.log(`Prepared batch ${i / 5000 + 1} (${batch.length} cards)`);
 
-  await Promise.all(tasks);
+    await meilisearch.index('cards-riftbound').addDocuments(batch);
+  }
 
   console.log('Import completed.');
 }

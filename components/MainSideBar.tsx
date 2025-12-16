@@ -1,9 +1,20 @@
-import { Book, ChevronDown, ChevronUp, Package, User2 } from "lucide-react";
-import { Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "./ui/sidebar";
+import {Book, Package} from "lucide-react";
+import {
+    Sidebar,
+    SidebarContent,
+    SidebarFooter,
+    SidebarGroup,
+    SidebarGroupContent,
+    SidebarGroupLabel,
+    SidebarHeader,
+    SidebarMenu,
+    SidebarMenuButton,
+    SidebarMenuItem
+} from "./ui/sidebar";
 import Link from "next/link";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "./ui/dropdown-menu";
 import db from "@/lib/mongodb";
 import {MainSideBarUserMenu} from "@/components/MainSideBarUserMenu";
+import {MainSideBarGameSelector} from "@/components/MainSideBarGameSelector";
 
 const collectionMenu = [
     {
@@ -19,8 +30,11 @@ const collectionMenu = [
 ];
 
 export async function MainSideBar() {
-    const games = await db.collection("games").find().toArray();
-    const activeGame = games[0];
+    const games = (await db.collection("games").find().toArray()).map((game) => ({
+        id: game._id.toString(),
+        name: game.name,
+        icon: game.icon,
+    }));
 
     return (
         <Sidebar>
@@ -31,40 +45,7 @@ export async function MainSideBar() {
                             <Link href="/">Joutes Tools</Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
-                    <SidebarMenuItem>
-                        <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <SidebarMenuButton className="w-fit px-1.5">
-                                    <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-5 items-center justify-center rounded-md">
-                                        <img className="size-3" src={activeGame.icon} />
-                                    </div>
-                                    <span className="truncate font-medium">{activeGame.name}</span>
-                                    <ChevronDown className="opacity-50" />
-                                </SidebarMenuButton>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent
-                                className="w-64 rounded-lg"
-                                align="start"
-                                side="bottom"
-                                sideOffset={4}
-                            >
-                                <DropdownMenuLabel className="text-muted-foreground text-xs">
-                                    Jeux
-                                </DropdownMenuLabel>
-                                {games.map((game, index) => (
-                                    <DropdownMenuItem
-                                        key={game._id.toString()}
-                                        className="gap-2 p-2"
-                                    >
-                                        <div className="flex size-6 items-center justify-center rounded-xs border">
-                                            <img className="size-4 shrink-0" src={game.icon} />
-                                        </div>
-                                        {game.name}
-                                    </DropdownMenuItem>
-                                ))}
-                            </DropdownMenuContent>
-                        </DropdownMenu>
-                    </SidebarMenuItem>
+                    <MainSideBarGameSelector games={games} />
                 </SidebarMenu>
             </SidebarHeader>
             <SidebarContent>

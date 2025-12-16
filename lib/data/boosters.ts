@@ -1,5 +1,5 @@
 import db from "@/lib/mongodb";
-import {Booster, BoosterDb} from "@/lib/types/booster";
+import {Booster, BoosterCard, BoosterDb} from "@/lib/types/booster";
 import {ObjectId} from "bson";
 
 export async function createBooster(booster: Omit<Booster, 'id' | 'createdAt'>): Promise<Booster> {
@@ -77,6 +77,31 @@ export async function getBooster(boosterId: string): Promise<Booster | null> {
     archived: booster.archived,
     createdAt: booster.createdAt.toISOString(),
     id: booster._id.toString(),
-    _id: undefined,
   };
+}
+
+export async function addCardToBoster(boosterId: string, card: BoosterCard): Promise<void> {
+  const cardToPush = {
+    ...card,
+    id: crypto.randomUUID(),
+  };
+  await db.collection<BoosterDb>('boosters').updateOne(
+    {_id: new ObjectId(boosterId)},
+    {
+      $push: {
+        cards: cardToPush,
+      },
+    }
+  );
+}
+
+export async function removeCardFromBooster(boosterId: string, cardId: string): Promise<void> {
+  await db.collection<BoosterDb>('boosters').updateOne(
+    {_id: new ObjectId(boosterId)},
+    {
+      $pull: {
+        cards: { id: cardId },
+      },
+    }
+  );
 }

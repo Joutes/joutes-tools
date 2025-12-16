@@ -1,16 +1,6 @@
 import {getBoosters} from "@/lib/data/boosters";
 import db from "@/lib/mongodb";
 import {Game} from "@/lib/types/game";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue
-} from "@/components/ui/select";
-import Image from "next/image";
 import {CreateBoosterDialog} from "./CreateBoosterDialog";
 import {headers} from "next/headers";
 import {auth} from "@/lib/auth";
@@ -37,29 +27,14 @@ export default async function BoostersPage() {
     icon: game.icon,
     banner: game.banner,
     description: game.description,
+    defaultSet: 'OGN',
+    defaultBoosterType: 'SET',
   }));
 
   return (
     <div>
       <div className="flex justify-between items-center gap-4">
         <h1 className="grow">Boosters Page</h1>
-        <Select>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Jeu"/>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              <SelectLabel>Jeu</SelectLabel>
-              {games.map((game) => (
-                <SelectItem key={game._id.toString()} value={game._id.toString()}>
-                  {game.icon ? <Image className="size-5" src={game.icon} alt={game.name} width={100} height={100}/> :
-                    <div className="aspect-square size-5 bg-gray-500 rounded-md"></div>}
-                  {game.name}
-                </SelectItem>
-              ))}
-            </SelectGroup>
-          </SelectContent>
-        </Select>
         <CreateBoosterDialog games={gamesFormatted}/>
       </div>
 

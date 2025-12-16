@@ -1,5 +1,17 @@
+import {MeiliSearch} from "meilisearch";
+
 (async () => {
   const meiliEndpoint = 'http://localhost:7700';
+  const client = new MeiliSearch({ host: meiliEndpoint });
+
+  // Delete the index if it already exists
+  try {
+    await client.index('cards-riftbound').delete();
+    console.info('Existing index deleted');
+  } catch (e) {
+    console.info('Index does not exist, no need to delete');
+  }
+
   await fetch(`${meiliEndpoint}/indexes`, {
     method: 'POST',
     headers: {
