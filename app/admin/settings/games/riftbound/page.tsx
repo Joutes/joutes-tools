@@ -2,8 +2,15 @@
 
 import {Button} from "@/components/ui/button";
 import {importCards} from "@/app/admin/settings/games/riftbound/action";
+import {useRequireAuth} from "@/hooks/use-auth";
 
 export default function RiftboundSettingsPage() {
+  const { session, isPending } = useRequireAuth();
+
+  if (!session) {
+    return <div>Loading...</div>;
+  }
+
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-4">Riftbound Settings</h1>
