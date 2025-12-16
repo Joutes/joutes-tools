@@ -22,7 +22,8 @@ export async function createBooster(booster: Omit<Booster, 'id' | 'createdAt'>):
   };
 }
 
-export async function getBoosters({gameId, page = 0, limit = 20, offset = 0,}: {
+export async function getBoosters({userId, gameId, page = 0, limit = 20, offset = 0,}: {
+  userId?: string;
   gameId?: string;
   page?: number;
   limit?: number;
@@ -30,9 +31,13 @@ export async function getBoosters({gameId, page = 0, limit = 20, offset = 0,}: {
 }): Promise<Booster[]> {
   const query: {
     gameId?: ObjectId;
+    userId?: ObjectId;
   } = {};
   if (gameId) {
     query['gameId'] = new ObjectId(gameId);
+  }
+  if (userId) {
+    query['userId'] = new ObjectId(userId);
   }
 
   const boosters = await db.collection<BoosterDb>('boosters').find(query).skip(offset * page).limit(limit).toArray();
@@ -48,6 +53,30 @@ export async function getBoosters({gameId, page = 0, limit = 20, offset = 0,}: {
     archived: booster.archived,
     createdAt: booster.createdAt.toISOString(),
     id: booster._id.toString(),
-    _id: null,
+    _id: undefined,
   }));
+}
+
+export async function getBooster(boosterId: string): Promise<Booster | null> {
+  const booster = await db.collection<BoosterDb>('boosters').findOne({
+    _id: new ObjectId(boosterId),
+  });
+
+  if (!booster) {
+    return null;
+  }
+
+  return {
+    gameId: booster.gameId.toString(),
+    userId: booster.userId.toString(),
+    setCode: booster.setCode,
+    lang: booster.lang,
+    type: booster.type,
+    cards: booster.cards,
+    value: booster.price,
+    archived: booster.archived,
+    createdAt: booster.createdAt.toISOString(),
+    id: booster._id.toString(),
+    _id: undefined,
+  };
 }

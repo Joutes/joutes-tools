@@ -31,8 +31,10 @@ export default function RootLayout({
       >
         <SidebarProvider>
           <MainSideBar />
-          <SidebarTrigger />
-          {children}
+          <main className="w-full">
+            <SidebarTrigger />
+            {children}
+          </main>
         </SidebarProvider>
       </body>
     </html>

@@ -5,11 +5,23 @@ import {Button} from "@/components/ui/button";
 import CardCard from "@/app/collection/boosters/[boosterId]/CardCard";
 import {Booster} from "@/lib/types/booster";
 import AddCardBar from "@/app/collection/boosters/[boosterId]/AddCardBar";
+import {getBooster} from "@/lib/data/boosters";
+import {auth} from "@/lib/auth";
+import {headers} from "next/headers";
 
 export default async function BoosterDetailsPage({ params }: { params: Promise<{ boosterId: string }> }) {
   const { boosterId } = await params;
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  })
 
-  const booster: Booster = {
+  const booster = await getBooster(boosterId);
+
+  if (!session || !booster || booster.userId !== session.user.id) {
+    return <div>Booster not found</div>;
+  }
+
+  const boosterLegacy: Booster = {
     id: boosterId,
     lang: 'fr',
     setCode: 'OGN',
@@ -30,10 +42,6 @@ export default async function BoosterDetailsPage({ params }: { params: Promise<{
     archived: false,
     createdAt: new Date().toISOString(),
   };
-
-  if (!booster) {
-    return <div>Booster not found</div>;
-  }
 
   async function addCard({ setCode, collectorNumber }: { setCode: string; collectorNumber: string }) {
     'use server';

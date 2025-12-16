@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { emailOtp, useSession, signOut } from "@/lib/auth-client";
+import {emailOtp, useSession, signOut, authClient} from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -47,7 +47,7 @@ export function AuthExample() {
     setError("");
 
     try {
-      await emailOtp.verifyEmail({
+      await authClient.signIn.emailOtp({
         email,
         otp,
       });

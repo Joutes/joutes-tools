@@ -1,11 +1,12 @@
 "use server";
 
-import db from "@/lib/mongodb";
-import {BoosterDb} from "@/lib/types/booster";
-import {ObjectId} from "bson";
+import {Booster} from "@/lib/types/booster";
 import {revalidatePath} from "next/cache";
+import {auth} from "@/lib/auth";
+import {headers} from "next/headers";
+import {createBooster} from "@/lib/data/boosters";
 
-export async function createBooster(formData: FormData) {
+export async function createBoosterAction(formData: FormData) {
   const gameId = formData.get("gameId") as string;
   const type = formData.get("type") as string;
   const setCode = formData.get("setCode") as string;
@@ -15,21 +16,24 @@ export async function createBooster(formData: FormData) {
     return {error: "Tous les champs sont requis"};
   }
 
-  // TODO: Récupérer l'userId depuis la session
-  const userId = new ObjectId();
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+  if (!session?.user?.id) {
+    throw new Error("Utilisateur non authentifié");
+  }
 
-  const booster: BoosterDb = {
-    gameId: new ObjectId(gameId),
-    userId,
+  const booster: Omit<Booster, 'id' | 'createdAt'> = {
+    gameId,
+    userId: session.user.id,
     setCode,
     lang,
     type,
     cards: [],
     archived: false,
-    createdAt: new Date(),
   };
 
-  await db.collection<BoosterDb>("boosters").insertOne(booster);
+  await createBooster(booster);
 
   revalidatePath("/collection/boosters");
   

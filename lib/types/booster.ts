@@ -32,10 +32,7 @@ export type BoosterDb = {
   setCode: string;
   lang: string;
   type: string;
-  cards: {
-    name: string;
-    quantity: number;
-  }[];
+  cards: BoosterCard[];
   price?: string;
   archived: boolean;
   createdAt: Date;

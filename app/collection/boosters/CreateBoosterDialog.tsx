@@ -20,7 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {Game} from "@/lib/types/game";
-import {createBooster} from "./action";
+import {createBoosterAction} from "./action";
 import {langToFlag} from "@/lib/langs";
 
 type Props = {
@@ -72,7 +72,7 @@ export function CreateBoosterDialog({games}: Props) {
   const selectedGame = games.find((g) => g.id === selectedGameId);
   const boosterTypes = selectedGame?.name.toLowerCase() === "star wars unlimited"
     ? BOOSTER_TYPES.swu
-    : selectedGame?.name.toLowerCase() === "magic: the gathering"
+    : selectedGame?.name.toLowerCase() === "magic"
     ? BOOSTER_TYPES.magic
     : selectedGame?.name.toLowerCase() === "riftbound"
     ? BOOSTER_TYPES.riftbound
@@ -83,7 +83,7 @@ export function CreateBoosterDialog({games}: Props) {
     const formData = new FormData(e.currentTarget);
 
     startTransition(async () => {
-      const result = await createBooster(formData);
+      const result = await createBoosterAction(formData);
       if (result.success) {
         setOpen(false);
         setSelectedGameId("");

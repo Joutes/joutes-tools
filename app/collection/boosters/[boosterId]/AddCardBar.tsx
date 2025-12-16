@@ -2,7 +2,6 @@
 
 import {MeiliSearch} from "meilisearch";
 import React, {FormEvent, useEffect, useState} from "react";
-import {cn} from "@/lib/utils";
 import {CircleAlertIcon, SearchIcon} from "lucide-react";
 import {Command, CommandGroup, CommandInput, CommandItem, CommandList} from "@/components/ui/command";
 
