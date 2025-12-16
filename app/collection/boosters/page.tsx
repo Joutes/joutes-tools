@@ -11,11 +11,19 @@ import {
   SelectValue
 } from "@/components/ui/select";
 import Image from "next/image";
-import {Button} from "@/components/ui/button";
+import {CreateBoosterDialog} from "./CreateBoosterDialog";
 
 export default async function BoostersPage() {
   const games = await db.collection<Game>("games").find().toArray();
   const boosters = await getBoosters({});
+  
+  const gamesFormatted = games.map((game) => ({
+    id: game._id.toString(),
+    name: game.name,
+    icon: game.icon,
+    banner: game.banner,
+    description: game.description,
+  }));
 
   return (
     <div>
@@ -38,7 +46,7 @@ export default async function BoostersPage() {
             </SelectGroup>
           </SelectContent>
         </Select>
-        <Button>Ajouter un booster</Button>
+        <CreateBoosterDialog games={gamesFormatted}/>
       </div>
 
       <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
