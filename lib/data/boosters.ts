@@ -1,5 +1,5 @@
 import db from "@/lib/mongodb";
-import {Booster, BoosterCard, BoosterDb} from "@/lib/types/booster";
+import {Booster, BoosterCard, BoosterCardDb, BoosterDb} from "@/lib/types/booster";
 import {ObjectId} from "bson";
 
 export async function createBooster(booster: Omit<Booster, 'id' | 'createdAt'>): Promise<Booster> {
@@ -9,7 +9,6 @@ export async function createBooster(booster: Omit<Booster, 'id' | 'createdAt'>):
     setCode: booster.setCode,
     lang: booster.lang,
     type: booster.type,
-    cards: booster.cards,
     price: booster.value,
     archived: booster.archived,
     createdAt: new Date(),
@@ -40,7 +39,28 @@ export async function getBoosters({userId, gameId, page = 0, limit = 20, offset 
     query['userId'] = new ObjectId(userId);
   }
 
-  const boosters = await db.collection<BoosterDb>('boosters').find(query).skip(offset * page).limit(limit).toArray();
+  const boosters = await db.collection<BoosterDb>('boosters').aggregate([
+    {$match: query},
+    {$sort: {createdAt: -1}},
+    {$skip: offset * page},
+    {$limit: limit},
+    {
+      $lookup: {
+        from: 'booster-cards',
+        localField: '_id',
+        foreignField: 'boosterId',
+        as: 'cards',
+        pipeline: [
+          {
+            $addFields: {
+              id: { $toString: '$id' }
+            }
+          },
+          {$project: {_id: 0, boosterId: 0}}
+        ],
+      },
+    },
+  ]).toArray();
 
   return boosters.map((booster) => ({
     gameId: booster.gameId.toString(),
@@ -66,13 +86,22 @@ export async function getBooster(boosterId: string): Promise<Booster | null> {
     return null;
   }
 
+  const cards = await db.collection<BoosterCardDb>('booster-cards').find({
+    boosterId: new ObjectId(boosterId),
+  }).toArray();
+
   return {
     gameId: booster.gameId.toString(),
     userId: booster.userId.toString(),
     setCode: booster.setCode,
     lang: booster.lang,
     type: booster.type,
-    cards: booster.cards,
+    cards: cards.map((card) => ({
+      ...card,
+      id: card._id.toString(),
+      boosterId: undefined,
+      _id: undefined,
+    })),
     value: booster.price,
     archived: booster.archived,
     createdAt: booster.createdAt.toISOString(),
@@ -80,28 +109,31 @@ export async function getBooster(boosterId: string): Promise<Booster | null> {
   };
 }
 
-export async function addCardToBoster(boosterId: string, card: BoosterCard): Promise<void> {
-  const cardToPush = {
+export async function addCardToBooster(boosterId: string, card: Omit<BoosterCard, 'id'>): Promise<void> {
+  const booster = await db.collection<BoosterDb>('boosters').findOne({
+    _id: new ObjectId(boosterId),
+  }, {projection: {_id: 1}});
+  if (!booster) {
+    throw new Error('Booster not found');
+  }
+
+  await db.collection<BoosterCardDb>('booster-cards').insertOne({
     ...card,
-    id: crypto.randomUUID(),
-  };
-  await db.collection<BoosterDb>('boosters').updateOne(
-    {_id: new ObjectId(boosterId)},
-    {
-      $push: {
-        cards: cardToPush,
-      },
-    }
-  );
+    boosterId: booster._id,
+  });
 }
 
 export async function removeCardFromBooster(boosterId: string, cardId: string): Promise<void> {
-  await db.collection<BoosterDb>('boosters').updateOne(
-    {_id: new ObjectId(boosterId)},
-    {
-      $pull: {
-        cards: { id: cardId },
-      },
-    }
-  );
+  console.log('Removing card', cardId, 'from booster', boosterId);
+  const booster = await db.collection<BoosterDb>('boosters').findOne({
+    _id: new ObjectId(boosterId),
+  }, {projection: {_id: 1}});
+  if (!booster) {
+    throw new Error('Booster not found');
+  }
+
+  await db.collection<BoosterCardDb>('booster-cards').deleteOne({
+    boosterId: booster._id,
+    _id: new ObjectId(cardId),
+  });
 }

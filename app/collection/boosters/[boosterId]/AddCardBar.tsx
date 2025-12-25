@@ -25,7 +25,7 @@ export default function AddCardBar({boosterId, setCode, lang}: {
     console.log("selectItem", item);
 
     addCardAction(boosterId, {
-      id: item.id,
+      cardId: item.id,
       setCode: item.setCode,
       collectorNumber: item.collectorNumber,
       name: item.name,

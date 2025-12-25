@@ -4,7 +4,7 @@ import {Booster, BoosterCard} from "@/lib/types/booster";
 import {revalidatePath} from "next/cache";
 import {auth} from "@/lib/auth";
 import {headers} from "next/headers";
-import {addCardToBoster, createBooster, getBooster, removeCardFromBooster} from "@/lib/data/boosters";
+import {addCardToBooster, createBooster, getBooster, removeCardFromBooster} from "@/lib/data/boosters";
 import {redirect} from "next/navigation";
 
 export async function createBoosterAction(formData: FormData) {
@@ -59,7 +59,7 @@ export async function removeCardFromBoosterAction(boosterId: string, cardId: str
   revalidatePath(`/collection/boosters/${boosterId}`);
 }
 
-export async function addCardAction(boosterId: string, card: BoosterCard) {
+export async function addCardAction(boosterId: string, card: Omit<BoosterCard, 'id'>) {
   const session = await auth.api.getSession({
     headers: await headers(),
   });
@@ -72,7 +72,7 @@ export async function addCardAction(boosterId: string, card: BoosterCard) {
     throw new Error("Booster non trouvé ou accès refusé");
   }
 
-  await addCardToBoster(booster.id, card);
+  await addCardToBooster(booster.id, card);
 
   revalidatePath(`/collection/boosters/${boosterId}`);
 }

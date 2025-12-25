@@ -4,6 +4,8 @@ import {ObjectId} from "bson";
 
 export type BoosterCard = {
   id: string;
+  cardId?: string;
+  boosterId?: string;
   name: string;
   setCode: string;
   collectorNumber: string;
@@ -12,6 +14,18 @@ export type BoosterCard = {
   price?: string;
   newInCollection?: boolean;
 };
+
+export type BoosterCardDb = {
+  boosterId: ObjectId;
+  cardId?: string;
+  name: string;
+  setCode: string;
+  collectorNumber: string;
+  foil?: boolean;
+  image: string;
+  price?: string;
+  newInCollection?: boolean;
+}
 
 export type Booster = {
   gameId: Game['id'];
@@ -32,7 +46,6 @@ export type BoosterDb = {
   setCode: string;
   lang: string;
   type: string;
-  cards: BoosterCard[];
   price?: string;
   archived: boolean;
   createdAt: Date;
