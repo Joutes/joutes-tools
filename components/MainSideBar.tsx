@@ -1,4 +1,4 @@
-import {Book, Package} from "lucide-react";
+import {Book, Package, Sheet} from "lucide-react";
 import {
     Sidebar,
     SidebarContent,
@@ -23,9 +23,9 @@ const collectionMenu = [
         icon: Package,
     },
     {
-        title: "Decks",
-        url: "/collection/decks",
-        icon: Book,
+        title: "Cartes",
+        url: "/collection/cards",
+        icon: Sheet,
     },
 ];
 

@@ -33,7 +33,7 @@ export default function RootLayout({
         <GameContextProvider>
           <SidebarProvider>
             <MainSideBar />
-            <main className="w-full">
+            <main className="w-full p-4">
               <SidebarTrigger />
               {children}
             </main>
