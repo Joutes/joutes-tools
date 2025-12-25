@@ -1,4 +1,4 @@
-import {NextResponse} from "next/server";
+import {NextRequest, NextResponse} from "next/server";
 import {BoosterCard} from "@/lib/types/booster";
 import meilisearch, {indexes} from "@/lib/meilisearch";
 
@@ -56,8 +56,9 @@ async function search({ searchQuery, lang, setCode }: { searchQuery: string; lan
   return result.hits;
 }
 
-export async function GET(request: Request, { params }: { params: { gameId: string } }) {
-  const { gameId } = params;
+export async function GET(request: NextRequest, { params }: { params: Promise<{ gameId: string }> }) {
+  const { gameId } = await params;
+
   const searchParams = new URL(request.url).searchParams;
   const setCode = searchParams.get('setCode') || '';
   const searchQuery = searchParams.get('searchQuery') || '';
