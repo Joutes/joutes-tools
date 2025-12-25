@@ -1,7 +1,7 @@
 'use server';
 
 import cards from '@/data/riftbound/cards.json';
-import meilisearch from "@/lib/meilisearch";
+import meilisearch, {indexes} from "@/lib/meilisearch";
 import {BoosterCard} from "@/lib/types/booster";
 
 const sets: { [setName: string]: { code: string } } = {
@@ -32,7 +32,7 @@ export async function importCards() {
     const batch = cardsSanitized.slice(i, i + 5000);
     console.log(`Prepared batch ${i / 5000 + 1} (${batch.length} cards)`);
 
-    await meilisearch.index('cards-riftbound').addDocuments(batch);
+    await meilisearch.index(indexes.riftbound).addDocuments(batch);
   }
 
   console.log('Import completed.');
