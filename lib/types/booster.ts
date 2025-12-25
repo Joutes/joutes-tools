@@ -17,6 +17,7 @@ export type BoosterCard = {
 
 export type BoosterCardDb = {
   boosterId: ObjectId;
+  userId: ObjectId;
   cardId?: string;
   name: string;
   setCode: string;

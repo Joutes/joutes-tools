@@ -101,6 +101,7 @@ export async function getBooster(boosterId: string): Promise<Booster | null> {
       id: card._id.toString(),
       boosterId: undefined,
       _id: undefined,
+      userId: undefined,
     })),
     value: booster.price,
     archived: booster.archived,
@@ -112,7 +113,7 @@ export async function getBooster(boosterId: string): Promise<Booster | null> {
 export async function addCardToBooster(boosterId: string, card: Omit<BoosterCard, 'id'>): Promise<void> {
   const booster = await db.collection<BoosterDb>('boosters').findOne({
     _id: new ObjectId(boosterId),
-  }, {projection: {_id: 1}});
+  }, {projection: {_id: 1, userId: 1 }});
   if (!booster) {
     throw new Error('Booster not found');
   }
@@ -120,6 +121,7 @@ export async function addCardToBooster(boosterId: string, card: Omit<BoosterCard
   await db.collection<BoosterCardDb>('booster-cards').insertOne({
     ...card,
     boosterId: booster._id,
+    userId: booster.userId,
   });
 }
 
@@ -137,3 +139,4 @@ export async function removeCardFromBooster(boosterId: string, cardId: string): 
     _id: new ObjectId(cardId),
   });
 }
+
