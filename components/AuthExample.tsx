@@ -4,6 +4,8 @@ import { useState } from "react";
 import {emailOtp, useSession, signOut, authClient} from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {Key} from "lucide-react";
+import {useRouter} from "next/navigation";
 
 /**
  * Exemple de composant d'authentification avec emailOTP
@@ -15,6 +17,7 @@ import { Input } from "@/components/ui/input";
  * 4. On vérifie l'OTP et connecte l'utilisateur
  */
 export function AuthExample() {
+  const router = useRouter();
   const { data: session, isPending } = useSession();
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
@@ -104,6 +107,22 @@ export function AuthExample() {
           {error && <p className="text-red-500 text-sm">{error}</p>}
           <Button type="submit" disabled={loading} className="w-full">
             {loading ? "Envoi..." : "Envoyer le code"}
+          </Button>
+          <Button className="w-full mt-8" onClick={async () => {
+            const { data, error } = await authClient.signIn.passkey({
+              fetchOptions: {
+                onSuccess(context) {
+                  router.push('/');
+                },
+                onError(context) {
+                  // Handle authentication errors
+                  console.error("Authentication failed:", context.error.message);
+                }
+              }
+            });
+          }}>
+            <Key />
+            PassKey/WebAuthN
           </Button>
         </form>
       ) : (

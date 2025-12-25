@@ -3,15 +3,17 @@ import { emailOTP } from "better-auth/plugins";
 import { mongodbAdapter } from "better-auth/adapters/mongodb";
 import { Resend } from "resend";
 import db from "./mongodb";
+import {passkey} from "@better-auth/passkey";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 export const auth = betterAuth({
   database: mongodbAdapter(db),
   emailAndPassword: {
-    enabled: true,
+    enabled: false,
   },
   plugins: [
+    passkey(),
     emailOTP({
       async sendVerificationOTP({ email, otp, type }) {
         // Si RESEND_API_KEY vaut "CONSOLE", on log l'OTP en console
