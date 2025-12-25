@@ -140,3 +140,84 @@ export async function removeCardFromBooster(boosterId: string, cardId: string): 
   });
 }
 
+export type GroupedCard = {
+  name: string;
+  setCode: string;
+  collectorNumber: string;
+  image: string;
+  quantity: number;
+};
+
+export async function getUserCards({
+  userId,
+  page = 0,
+  limit = 50,
+}: {
+  userId: string;
+  page?: number;
+  limit?: number;
+}): Promise<{ cards: GroupedCard[]; total: number }> {
+  const skip = page * limit;
+
+  // Agrégation pour grouper les cartes par setCode et collectorNumber
+  const pipeline = [
+    {
+      $match: {
+        userId: new ObjectId(userId),
+      },
+    },
+    {
+      $group: {
+        _id: {
+          setCode: '$setCode',
+          collectorNumber: '$collectorNumber',
+        },
+        name: { $first: '$name' },
+        setCode: { $first: '$setCode' },
+        collectorNumber: { $first: '$collectorNumber' },
+        image: { $first: '$image' },
+        quantity: { $sum: 1 },
+      },
+    },
+    {
+      $sort: {
+        setCode: 1,
+        collectorNumber: 1,
+      },
+    },
+  ];
+
+  // Compter le total
+  const countResult = await db
+    .collection<BoosterCardDb>('booster-cards')
+    .aggregate([...pipeline, { $count: 'total' }])
+    .toArray();
+
+  const total = countResult.length > 0 ? countResult[0].total : 0;
+
+  // Récupérer les cartes paginées
+  const cards = await db
+    .collection<BoosterCardDb>('booster-cards')
+    .aggregate([
+      ...pipeline,
+      { $skip: skip },
+      { $limit: limit },
+      {
+        $project: {
+          _id: 0,
+          name: 1,
+          setCode: 1,
+          collectorNumber: 1,
+          image: 1,
+          quantity: 1,
+        },
+      },
+    ])
+    .toArray();
+
+  return {
+    cards: cards as GroupedCard[],
+    total,
+  };
+}
+
