@@ -1,6 +1,7 @@
 'use server';
 
 import cards from '@/data/riftbound/cards.json';
+import { auth } from '@/lib/auth';
 import meilisearch, {indexes} from "@/lib/meilisearch";
 import {BoosterCard} from "@/lib/types/booster";
 
@@ -14,6 +15,11 @@ const sets: { [setName: string]: { code: string } } = {
 };
 
 export async function importCards() {
+  const session = await auth.api.getSession();
+  if (session?.user.email !== process.env.ADMIN_EMAIL) {
+    throw new Error('Unauthorized');
+  }
+
   console.log(`Importing ${cards.length} Riftbound cards...`);
 
   const cardsSanitized: BoosterCard[] = cards.map((card) => {
