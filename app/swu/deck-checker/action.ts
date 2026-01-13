@@ -1,5 +1,6 @@
 "use server";
 
+import { auth } from "@/lib/auth";
 import { openai } from "@ai-sdk/openai";
 import { generateText } from "ai";
 import { extract } from "fuzzball";
@@ -15,6 +16,11 @@ export async function verifyDeck(
   deckList: string,
   imageBase64: string
 ): Promise<VerifyDeckResult> {
+  const session = await auth.api.getSession();
+  if (session?.user.email !== process.env.ADMIN_EMAIL) {
+    throw new Error('Unauthorized');
+  }
+
   // Extraire les cartes de la photo avec OpenAI Vision
   const { text } = await generateText({
     model: openai("gpt-4o"),
