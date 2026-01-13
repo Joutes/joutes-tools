@@ -11,7 +11,7 @@ import {
 } from "./ui/dropdown-menu";
 import useGame from "@/hooks/use-game";
 
-export function MainSideBarGameSelector({ games }: { games: { id: string, name: string, icon?: string }[]}) {
+export function MainSideBarGameSelector({ games }: { games: { id: string, name: string, icon?: string; slug?: string }[]}) {
   const gameContext = useGame();
   const activeGame = gameContext.game;
 

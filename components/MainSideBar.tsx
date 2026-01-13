@@ -1,4 +1,4 @@
-import {Book, Package, Sheet} from "lucide-react";
+import {Package, Sheet} from "lucide-react";
 import {
     Sidebar,
     SidebarContent,
@@ -15,6 +15,7 @@ import Link from "next/link";
 import db from "@/lib/mongodb";
 import {MainSideBarUserMenu} from "@/components/MainSideBarUserMenu";
 import {MainSideBarGameSelector} from "@/components/MainSideBarGameSelector";
+import MainSideBarGameMenu from "./MainSideBarGameMenu";
 
 const collectionMenu = [
     {
@@ -34,6 +35,7 @@ export async function MainSideBar() {
         id: game._id.toString(),
         name: game.name,
         icon: game.icon,
+        slug: game.slug,
     }));
 
     return (
@@ -68,9 +70,7 @@ export async function MainSideBar() {
                         </SidebarMenu>
                     </SidebarGroupContent>
                 </SidebarGroup>
-                <SidebarGroup>
-                    <SidebarGroupLabel>Outils de Jeu</SidebarGroupLabel>
-                </SidebarGroup>
+                <MainSideBarGameMenu />
             </SidebarContent>
             <SidebarFooter>
                 <MainSideBarUserMenu />
