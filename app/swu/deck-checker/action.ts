@@ -24,7 +24,7 @@ export async function verifyDeck(
         content: [
           {
             type: "text",
-            text: "Extract all card names from this Star Wars Unlimited deck photo. Return ONLY a list of card names, one per line, without any additional text, formatting, or numbering. Include the quantity if visible (format: '2x Card Name' or just 'Card Name').",
+            text: "Extract all card names from this Star Wars Unlimited deck photo. Return ONLY a list of card names, one per line, without any additional text, formatting, or numbering. If the card is in the photo multiple times, list it multiple times, one per line.",
           },
           {
             type: "image",
