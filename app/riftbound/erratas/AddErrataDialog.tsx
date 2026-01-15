@@ -70,7 +70,7 @@ export default function AddErrataDialog() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!selectedCard?.cardId) {
+    if (!selectedCard?.id) {
       alert("Veuillez sélectionner une carte");
       return;
     }
@@ -79,7 +79,7 @@ export default function AddErrataDialog() {
 
     try {
       await createErrata({
-        cardId: selectedCard.cardId,
+        cardId: selectedCard.id,
         type,
         details,
         source: source.trim() || undefined,
