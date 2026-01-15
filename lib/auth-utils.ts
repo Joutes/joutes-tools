@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 
-const ADMIN_EMAILS = ["nakasar@outlook.fr"];
+const ADMIN_EMAILS = JSON.parse(process.env.ADMIN_EMAILS || "[]") as string[];
 
 export async function isAdmin(): Promise<boolean> {
   const session = await auth.api.getSession({ headers: await headers() });
