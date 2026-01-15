@@ -2,7 +2,7 @@
 
 import useGame from "@/hooks/use-game";
 import { SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "./ui/sidebar";
-import { LibraryIcon, ScanIcon, WatchIcon } from "lucide-react";
+import { LibraryIcon, ScanIcon, SearchIcon, WatchIcon } from "lucide-react";
 import Link from "next/link";
 
 const gamesMenus: { [slug: string]: {
@@ -11,6 +11,11 @@ const gamesMenus: { [slug: string]: {
     icon?: React.ComponentType<any>;
 }[]} = {
     'riftbound': [
+        {
+            title: "Cartes",
+            url: "/riftbound/cards",
+            icon: SearchIcon,
+        },
         {
             title: "Erratas",
             url: "/riftbound/erratas",
