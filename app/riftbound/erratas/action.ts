@@ -36,10 +36,13 @@ export async function createErrata(data: {
   revalidatePath("/riftbound/erratas");
 }
 
-export async function deleteErrata(errataId: string) {
+export async function deleteErrata(errataId: string, cardId?: string) {
   await requireAdmin();
 
   await db.collection<ErrataDb>("erratas").deleteOne({ _id: new ObjectId(errataId) });
 
   revalidatePath("/riftbound/erratas");
+  if (cardId) {
+    revalidatePath(`/riftbound/cards/${cardId}`);
+  }
 }

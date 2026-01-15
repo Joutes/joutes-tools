@@ -5,6 +5,7 @@ import { BoosterCard } from "@/lib/types/booster";
 import AddErrataDialog from "./AddErrataDialog";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
+import DeleteErrataButton from "@/components/DeleteErrataButton";
 
 export default async function RiftboundErratasPage() {
   const erratas = await getAllErratas();
@@ -68,29 +69,34 @@ export default async function RiftboundErratasPage() {
                         </h3>
                       </Link>
                     )}
-                    <div className="flex items-center gap-2 mb-3">
-                      <span
-                        className={`text-xs font-semibold px-2 py-1 rounded ${
-                          errata.type === "errata"
-                            ? "bg-red-100 text-red-800"
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`text-xs font-semibold px-2 py-1 rounded ${
+                            errata.type === "errata"
+                              ? "bg-red-100 text-red-800"
+                              : errata.type === "clarification"
+                              ? "bg-blue-100 text-blue-800"
+                              : "bg-green-100 text-green-800"
+                          }`}
+                        >
+                          {errata.type === "errata"
+                            ? "Errata"
                             : errata.type === "clarification"
-                            ? "bg-blue-100 text-blue-800"
-                            : "bg-green-100 text-green-800"
-                        }`}
-                      >
-                        {errata.type === "errata"
-                          ? "Errata"
-                          : errata.type === "clarification"
-                          ? "Clarification"
-                          : "Ruling"}
-                      </span>
-                      <span className="text-sm text-muted-foreground">
-                        {new Date(errata.createdAt).toLocaleDateString("fr-FR", {
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                        })}
-                      </span>
+                            ? "Clarification"
+                            : "Ruling"}
+                        </span>
+                        <span className="text-sm text-muted-foreground">
+                          {new Date(errata.createdAt).toLocaleDateString("fr-FR", {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          })}
+                        </span>
+                      </div>
+                      {userIsAdmin && (
+                        <DeleteErrataButton errataId={errata.id} cardId={errata.cardId} />
+                      )}
                     </div>
                     <div className="prose prose-sm dark:prose-invert max-w-none">
                       <ReactMarkdown>{errata.details}</ReactMarkdown>
