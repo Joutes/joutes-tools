@@ -28,7 +28,7 @@ async function search({ searchQuery, lang, setCode }: { searchQuery: string; lan
     queryOptions.filter.push(
       `setCode = ${setResult?.groups?.set}`,
     );
-  } else {
+  } else if (setCode && setCode !== '*') {
     queryOptions.filter.push(
       `setCode = ${setCode}`,
     );
