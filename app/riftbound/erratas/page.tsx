@@ -6,6 +6,7 @@ import AddErrataDialog from "./AddErrataDialog";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import DeleteErrataButton from "@/components/DeleteErrataButton";
+import EditErrataDialog from "@/components/EditErrataDialog";
 
 export default async function RiftboundErratasPage() {
   const erratas = await getAllErratas();
@@ -87,7 +88,7 @@ export default async function RiftboundErratasPage() {
                             : "Ruling"}
                         </span>
                         <span className="text-sm text-muted-foreground">
-                          {new Date(errata.createdAt).toLocaleDateString("fr-FR", {
+                          {errata.errataDate && new Date(errata.errataDate).toLocaleDateString("fr-FR", {
                             year: "numeric",
                             month: "long",
                             day: "numeric",
@@ -95,7 +96,10 @@ export default async function RiftboundErratasPage() {
                         </span>
                       </div>
                       {userIsAdmin && (
-                        <DeleteErrataButton errataId={errata.id} cardId={errata.cardId} />
+                        <div className="flex gap-1">
+                          <EditErrataDialog errata={errata} cardId={errata.cardId} />
+                          <DeleteErrataButton errataId={errata.id} cardId={errata.cardId} />
+                        </div>
                       )}
                     </div>
                     <div className="prose prose-sm dark:prose-invert max-w-none">

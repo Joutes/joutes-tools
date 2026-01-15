@@ -5,6 +5,7 @@ import { BoosterCard } from "@/lib/types/booster";
 import AddErrataButton from "./AddErrataButton";
 import ReactMarkdown from "react-markdown";
 import DeleteErrataButton from "@/components/DeleteErrataButton";
+import EditErrataDialog from "@/components/EditErrataDialog";
 
 export default async function RiftboundCardDetailPage({
   params,
@@ -89,15 +90,22 @@ export default async function RiftboundCardDetailPage({
                             : "Ruling"}
                         </span>
                         <span className="text-xs text-muted-foreground">
-                          {new Date(errata.createdAt).toLocaleDateString("fr-FR")}
+                          {new Date(errata.errataDate).toLocaleDateString("fr-FR", {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          })}
                         </span>
                       </div>
                       {userIsAdmin && (
-                        <DeleteErrataButton errataId={errata.id} cardId={cardId} />
+                        <div className="flex gap-1">
+                          <EditErrataDialog errata={errata} cardId={cardId} />
+                          <DeleteErrataButton errataId={errata.id} cardId={cardId} />
+                        </div>
                       )}
                     </div>
-                    <div className="prose prose-sm dark:prose-invert max-w-none">
-                      <ReactMarkdown>{errata.details}</ReactMarkdown>
+                    <div className="prose prose-sm dark:prose-invert max-w-none ">
+                      <ReactMarkdown children={errata.details} />
                     </div>
                     {errata.source && (
                       <div className="mt-2 pt-2 border-t">

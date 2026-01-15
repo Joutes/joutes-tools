@@ -13,6 +13,7 @@ export async function createErrata(data: {
   type: ErrataType;
   details: string;
   source?: string;
+  errataDate: Date;
 }) {
   await requireAdmin();
 
@@ -26,6 +27,7 @@ export async function createErrata(data: {
     type: data.type,
     details: data.details,
     source: data.source,
+    errataDate: data.errataDate,
     createdBy: new ObjectId(session.user.id),
     createdAt: new Date(),
   };
@@ -34,6 +36,36 @@ export async function createErrata(data: {
 
   revalidatePath(`/riftbound/cards/${data.cardId}`);
   revalidatePath("/riftbound/erratas");
+}
+
+export async function updateErrata(
+  errataId: string,
+  data: {
+    type: ErrataType;
+    details: string;
+    source?: string;
+    errataDate: Date;
+  },
+  cardId?: string
+) {
+  await requireAdmin();
+
+  await db.collection<ErrataDb>("erratas").updateOne(
+    { _id: new ObjectId(errataId) },
+    {
+      $set: {
+        type: data.type,
+        details: data.details,
+        source: data.source,
+        errataDate: data.errataDate,
+      },
+    }
+  );
+
+  revalidatePath("/riftbound/erratas");
+  if (cardId) {
+    revalidatePath(`/riftbound/cards/${cardId}`);
+  }
 }
 
 export async function deleteErrata(errataId: string, cardId?: string) {

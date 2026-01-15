@@ -8,6 +8,7 @@ export type Errata = {
   type: ErrataType;
   details: string;
   source?: string;
+  errataDate: Date;
   createdBy: string;
   createdAt: Date;
 };
@@ -17,6 +18,7 @@ export type ErrataDb = {
   type: ErrataType;
   details: string;
   source?: string;
+  errataDate: Date;
   createdBy: ObjectId;
   createdAt: Date;
 };

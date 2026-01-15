@@ -31,6 +31,9 @@ export default function AddErrataDialog() {
   const [type, setType] = useState<ErrataType>("errata");
   const [details, setDetails] = useState("");
   const [source, setSource] = useState("");
+  const [errataDate, setErrataDate] = useState(
+    new Date().toISOString().split("T")[0]
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
 
@@ -80,6 +83,7 @@ export default function AddErrataDialog() {
         type,
         details,
         source: source.trim() || undefined,
+        errataDate: new Date(errataDate),
       });
 
       setOpen(false);
@@ -89,6 +93,7 @@ export default function AddErrataDialog() {
       setType("errata");
       setDetails("");
       setSource("");
+      setErrataDate(new Date().toISOString().split("T")[0]);
     } catch (error) {
       console.error("Erreur lors de la création de l'errata:", error);
       alert("Erreur lors de la création de l'errata");
@@ -193,6 +198,18 @@ export default function AddErrataDialog() {
                   <SelectItem value="ruling">Ruling</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="grid gap-2">
+              <label htmlFor="errataDate" className="text-sm font-medium">
+                Date de l'errata
+              </label>
+              <Input
+                id="errataDate"
+                type="date"
+                value={errataDate}
+                onChange={(e) => setErrataDate(e.target.value)}
+                required
+              />
             </div>
             <div className="grid gap-2">
               <label htmlFor="details" className="text-sm font-medium">

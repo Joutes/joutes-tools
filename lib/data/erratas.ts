@@ -17,6 +17,7 @@ export async function getErratasByCardId(cardId: string): Promise<Errata[]> {
     type: errata.type,
     details: errata.details,
     source: errata.source,
+    errataDate: errata.errataDate,
     createdBy: errata.createdBy.toString(),
     createdAt: errata.createdAt,
   }));
@@ -35,6 +36,7 @@ export async function getAllErratas(): Promise<Errata[]> {
     type: errata.type,
     details: errata.details,
     source: errata.source,
+    errataDate: errata.errataDate,
     createdBy: errata.createdBy.toString(),
     createdAt: errata.createdAt,
   }));
