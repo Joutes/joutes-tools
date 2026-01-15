@@ -3,6 +3,7 @@ import { isAdmin } from "@/lib/auth-utils";
 import meilisearch, { indexes } from "@/lib/meilisearch";
 import { BoosterCard } from "@/lib/types/booster";
 import AddErrataButton from "./AddErrataButton";
+import ReactMarkdown from "react-markdown";
 
 export default async function RiftboundCardDetailPage({
   params,
@@ -89,7 +90,21 @@ export default async function RiftboundCardDetailPage({
                         {new Date(errata.createdAt).toLocaleDateString("fr-FR")}
                       </span>
                     </div>
-                    <p className="whitespace-pre-wrap">{errata.details}</p>
+                    <div className="prose prose-sm dark:prose-invert max-w-none">
+                      <ReactMarkdown>{errata.details}</ReactMarkdown>
+                    </div>
+                    {errata.source && (
+                      <div className="mt-2 pt-2 border-t">
+                        <a
+                          href={errata.source}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-blue-600 hover:underline"
+                        >
+                          Source →
+                        </a>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

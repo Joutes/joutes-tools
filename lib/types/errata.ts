@@ -7,6 +7,7 @@ export type Errata = {
   cardId: string;
   type: ErrataType;
   details: string;
+  source?: string;
   createdBy: string;
   createdAt: Date;
 };
@@ -15,6 +16,7 @@ export type ErrataDb = {
   cardId: string;
   type: ErrataType;
   details: string;
+  source?: string;
   createdBy: ObjectId;
   createdAt: Date;
 };

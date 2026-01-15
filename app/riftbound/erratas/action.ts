@@ -12,6 +12,7 @@ export async function createErrata(data: {
   cardId: string;
   type: ErrataType;
   details: string;
+  source?: string;
 }) {
   await requireAdmin();
 
@@ -24,6 +25,7 @@ export async function createErrata(data: {
     cardId: data.cardId,
     type: data.type,
     details: data.details,
+    source: data.source,
     createdBy: new ObjectId(session.user.id),
     createdAt: new Date(),
   };

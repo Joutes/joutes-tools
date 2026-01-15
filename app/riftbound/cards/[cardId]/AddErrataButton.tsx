@@ -27,6 +27,7 @@ export default function AddErrataButton({ cardId }: { cardId: string }) {
   const [open, setOpen] = useState(false);
   const [type, setType] = useState<ErrataType>("errata");
   const [details, setDetails] = useState("");
+  const [source, setSource] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -38,11 +39,13 @@ export default function AddErrataButton({ cardId }: { cardId: string }) {
         cardId,
         type,
         details,
+        source: source.trim() || undefined,
       });
 
       setOpen(false);
       setType("errata");
       setDetails("");
+      setSource("");
     } catch (error) {
       console.error("Erreur lors de la création de l'errata:", error);
       alert("Erreur lors de la création de l'errata");
@@ -94,7 +97,19 @@ export default function AddErrataButton({ cardId }: { cardId: string }) {
                 onChange={(e) => setDetails(e.target.value)}
                 required
                 className="min-h-[100px] rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                placeholder="Décrivez l'errata, la clarification ou le ruling..."
+                placeholder="Décrivez l'errata, la clarification ou le ruling... (Markdown supporté)"
+              />
+            </div>
+            <div className="grid gap-2">
+              <label htmlFor="source" className="text-sm font-medium">
+                Source (optionnel)
+              </label>
+              <Input
+                id="source"
+                type="url"
+                value={source}
+                onChange={(e) => setSource(e.target.value)}
+                placeholder="https://example.com/errata"
               />
             </div>
           </div>
