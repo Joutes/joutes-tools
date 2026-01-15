@@ -11,23 +11,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Errata, ErrataType } from "@/lib/types/errata";
-import { BoosterCard } from "@/lib/types/booster";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import DeleteErrataButton from "@/components/DeleteErrataButton";
 import EditErrataDialog from "@/components/EditErrataDialog";
 import { Search, ArrowUpDown } from "lucide-react";
 
-type ErrataWithCard = {
-  errata: Errata;
-  card?: BoosterCard;
-};
-
 export default function ErratasClientView({
-  erratasWithCards,
+  erratas,
   userIsAdmin,
 }: {
-  erratasWithCards: ErrataWithCard[];
+  erratas: Errata[];
   userIsAdmin: boolean;
 }) {
   const [searchQuery, setSearchQuery] = useState("");
@@ -35,7 +29,7 @@ export default function ErratasClientView({
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
   const filteredAndSortedErratas = useMemo(() => {
-    let result = erratasWithCards;
+    let result = erratas;
 
     // Filtrer par nom de carte
     if (searchQuery.trim()) {
@@ -47,18 +41,18 @@ export default function ErratasClientView({
 
     // Filtrer par type
     if (typeFilter !== "all") {
-      result = result.filter((item) => item.errata.type === typeFilter);
+      result = result.filter((item) => item.type === typeFilter);
     }
 
     // Trier par date d'errata
     result = [...result].sort((a, b) => {
-      const dateA = new Date(a.errata.errataDate).getTime();
-      const dateB = new Date(b.errata.errataDate).getTime();
+      const dateA = new Date(a.errataDate).getTime();
+      const dateB = new Date(b.errataDate).getTime();
       return sortOrder === "desc" ? dateB - dateA : dateA - dateB;
     });
 
     return result;
-  }, [erratasWithCards, searchQuery, typeFilter, sortOrder]);
+  }, [erratas, searchQuery, typeFilter, sortOrder]);
 
   const toggleSortOrder = () => {
     setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"));
@@ -113,7 +107,7 @@ export default function ErratasClientView({
           {filteredAndSortedErratas.length} résultat
           {filteredAndSortedErratas.length > 1 ? "s" : ""}
           {searchQuery || typeFilter !== "all"
-            ? ` sur ${erratasWithCards.length}`
+            ? ` sur ${erratas.length}`
             : ""}
         </p>
       </div>
@@ -125,26 +119,26 @@ export default function ErratasClientView({
         </p>
       ) : (
         <div className="space-y-6">
-          {filteredAndSortedErratas.map(({ errata, card }) => (
+          {filteredAndSortedErratas.map((errata) => (
             <div
               key={errata.id}
               className="border rounded-lg p-6 bg-card shadow-sm"
             >
               <div className="flex gap-4">
-                {card && (
+                {errata.card && (
                   <Link href={`/riftbound/cards/${errata.cardId}`}>
                     <img
-                      src={card.image}
-                      alt={card.name}
+                      src={errata.card.image}
+                      alt={errata.card.name}
                       className="w-32 h-auto rounded-md hover:shadow-lg transition-shadow cursor-pointer"
                     />
                   </Link>
                 )}
                 <div className="flex-1">
-                  {card && (
+                  {errata.card && (
                     <Link href={`/riftbound/cards/${errata.cardId}`}>
                       <h3 className="text-xl font-semibold mb-2 hover:underline">
-                        {card.name}
+                        {errata.card.name}
                       </h3>
                     </Link>
                   )}

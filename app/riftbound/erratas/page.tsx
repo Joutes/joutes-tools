@@ -10,27 +10,6 @@ export default async function RiftboundErratasPage() {
   const userIsAdmin = await isAdmin();
 
   // Récupérer les informations des cartes pour chaque errata
-  const index = meilisearch.index<BoosterCard>(indexes.riftbound);
-  const cardIds = [...new Set(erratas.map((e) => e.cardId))];
-
-  const cardsMap = new Map<string, BoosterCard>();
-
-  for (const cardId of cardIds) {
-    try {
-      const result = await index.getDocument(cardId);
-      if (result) {
-        cardsMap.set(cardId, result);
-      }
-    } catch (error) {
-      console.error(`Erreur lors de la récupération de la carte ${cardId}:`, error);
-    }
-  }
-
-  // Préparer les données pour le composant client
-  const erratasWithCards = erratas.map((errata) => ({
-    errata,
-    card: cardsMap.get(errata.cardId),
-  }));
 
   return (
     <div className="container mx-auto p-6">
@@ -40,7 +19,7 @@ export default async function RiftboundErratasPage() {
       </div>
 
       <ErratasClientView
-        erratasWithCards={erratasWithCards}
+        erratas={erratas}
         userIsAdmin={userIsAdmin}
       />
     </div>

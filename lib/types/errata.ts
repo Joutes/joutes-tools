@@ -1,10 +1,12 @@
 import { ObjectId } from "bson";
+import {BoosterCard} from "@/lib/types/booster";
 
 export type ErrataType = "errata" | "clarification" | "ruling";
 
 export type Errata = {
   id: string;
   cardId: string;
+  card?: BoosterCard;
   type: ErrataType;
   details: string;
   source?: string;
