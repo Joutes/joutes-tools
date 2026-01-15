@@ -81,8 +81,8 @@ export default function CardSearchBar() {
         <div className="absolute top-full mt-2 w-full bg-card border rounded-lg shadow-lg z-50 max-h-[400px] overflow-y-auto">
           {cards.map((card) => (
             <button
-              key={`${card.cardId}-${card.setCode}-${card.collectorNumber}`}
-              onClick={() => card.cardId && handleCardSelect(card.cardId)}
+              key={`${card.id}-${card.setCode}-${card.collectorNumber}`}
+              onClick={() => card.id && handleCardSelect(card.id)}
               className="w-full flex items-center gap-3 p-3 hover:bg-muted transition-colors text-left border-b last:border-b-0"
             >
               <img
