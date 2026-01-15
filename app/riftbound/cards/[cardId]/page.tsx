@@ -6,6 +6,7 @@ import AddErrataButton from "./AddErrataButton";
 import ReactMarkdown from "react-markdown";
 import DeleteErrataButton from "@/components/DeleteErrataButton";
 import EditErrataDialog from "@/components/EditErrataDialog";
+import CardSearchBar from "./CardSearchBar";
 
 export default async function RiftboundCardDetailPage({
   params,
@@ -35,6 +36,11 @@ export default async function RiftboundCardDetailPage({
 
   return (
     <div className="container mx-auto p-6">
+      {/* Barre de recherche */}
+      <div className="mb-8 flex justify-center">
+        <CardSearchBar />
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Image de la carte */}
         <div>

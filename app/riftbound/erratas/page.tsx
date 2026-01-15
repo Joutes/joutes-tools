@@ -20,12 +20,9 @@ export default async function RiftboundErratasPage() {
   
   for (const cardId of cardIds) {
     try {
-      const result = await index.search("", {
-        filter: [`cardId = ${cardId}`],
-        limit: 1,
-      });
-      if (result.hits[0]) {
-        cardsMap.set(cardId, result.hits[0]);
+      const result = await index.getDocument(cardId);
+      if (result) {
+        cardsMap.set(cardId, result);
       }
     } catch (error) {
       console.error(`Erreur lors de la récupération de la carte ${cardId}:`, error);
