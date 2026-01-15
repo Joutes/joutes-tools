@@ -2,7 +2,7 @@
 
 import useGame from "@/hooks/use-game";
 import { SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "./ui/sidebar";
-import { ScanIcon, WatchIcon } from "lucide-react";
+import { LibraryIcon, ScanIcon, WatchIcon } from "lucide-react";
 import Link from "next/link";
 
 const gamesMenus: { [slug: string]: {
@@ -10,7 +10,13 @@ const gamesMenus: { [slug: string]: {
     url: string;
     icon?: React.ComponentType<any>;
 }[]} = {
-    'riftbound': [],
+    'riftbound': [
+        {
+            title: "Erratas",
+            url: "/riftbound/erratas",
+            icon: LibraryIcon,
+        },
+    ],
     'swu': [
         {
             title: "Timers (ronde, draft)",
