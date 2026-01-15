@@ -21,7 +21,6 @@ import {
 } from "@/components/ui/select";
 import { createErrata } from "@/app/riftbound/erratas/action";
 import { ErrataType } from "@/lib/types/errata";
-import { BoosterCard } from "@/lib/types/booster";
 
 export default function AddErrataButton({ cardId }: { cardId: string }) {
   const [open, setOpen] = useState(false);
@@ -29,6 +28,9 @@ export default function AddErrataButton({ cardId }: { cardId: string }) {
   const [details, setDetails] = useState("");
   const [source, setSource] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errataDate, setErrataDate] = useState(
+    new Date().toISOString().split("T")[0]
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,6 +42,7 @@ export default function AddErrataButton({ cardId }: { cardId: string }) {
         type,
         details,
         source: source.trim() || undefined,
+        errataDate: new Date(errataDate),
       });
 
       setOpen(false);
@@ -86,6 +89,18 @@ export default function AddErrataButton({ cardId }: { cardId: string }) {
                   <SelectItem value="ruling">Ruling</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="grid gap-2">
+              <label htmlFor="errataDate" className="text-sm font-medium">
+                Date de l'errata
+              </label>
+              <Input
+                id="errataDate"
+                type="date"
+                value={errataDate}
+                onChange={(e) => setErrataDate(e.target.value)}
+                required
+              />
             </div>
             <div className="grid gap-2">
               <label htmlFor="details" className="text-sm font-medium">
