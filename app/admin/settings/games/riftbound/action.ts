@@ -1,35 +1,80 @@
 'use server';
 
-import cards from '@/data/riftbound/cards.json';
+import cards from '@/data/riftbound/cards-tcg-arena.json';
 import { auth } from '@/lib/auth';
 import meilisearch, {indexes} from "@/lib/meilisearch";
 import {BoosterCard} from "@/lib/types/booster";
+import {headers} from "next/headers";
 
-const sets: { [setName: string]: { code: string } } = {
-  'origins': {
+const sets: {
+  [setName: string]: {
+    code: string;
+    maxCollectorNumber?: number
+    idPrefix?: string;
+  }
+} = {
+  '01 - Origins': {
     code: 'OGN',
+    maxCollectorNumber: 298,
+    idPrefix: 'origins-',
   },
-  'origins-proving-grounds': {
+  '00 - Proving Grounds': {
     code: 'OGS',
+    maxCollectorNumber: 24,
+    idPrefix: 'ogs',
+  },
+  '02 - Spiritforged': {
+    code: 'SFD',
   },
 };
 
 export async function importCards() {
-  const session = await auth.api.getSession();
+  console.log('Starting Riftbound card import...');
+
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
   if (session?.user.email !== process.env.ADMIN_EMAIL) {
     throw new Error('Unauthorized');
   }
 
-  console.log(`Importing ${cards.length} Riftbound cards...`);
+  const cardsArray: {
+    id: string;
+    face: {
+      front: {
+        name: string;
+        type: string;
+        cost: number;
+        image: string;
+      };
+    };
+    name: string;
+    type: string;
+    cost: number;
+    Set?: string[];
+  }[] = Object.values(cards);
 
-  const cardsSanitized: BoosterCard[] = cards.map((card) => {
+  console.log(`Importing ${cardsArray.length} Riftbound cards...`);
+
+  const cardsSanitized: BoosterCard[] = cardsArray.map((card) => {
+    const [cardSetCode, cardNumber] = card.id.split('-');
+    const cardSet = card.Set?.[0];
+
+    let cardId = "";
+    if (cardSet) {
+      const setInfo = sets[cardSet];
+      cardId = `${setInfo?.idPrefix}${cardNumber}${setInfo?.maxCollectorNumber}`;
+    } else {
+      cardId = card.id;
+    }
+
     return {
       ...card,
-      id: card.id.replaceAll('*', '-s-'),
-      image: card.images.small,
+      id: cardId,
+      image: card.face.front.image,
 
-      collectorNumber: card.number?.split('/')[0] ?? '0',
-      setCode: sets[card.set.id]?.code ?? '???',
+      collectorNumber: cardNumber,
+      setCode: cardSetCode ?? '???',
       lang: 'en',
     };
   });
