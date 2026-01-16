@@ -1,4 +1,4 @@
-import {Package, Sheet} from "lucide-react";
+import {ExternalLinkIcon, Package, Sheet} from "lucide-react";
 import {
     Sidebar,
     SidebarContent,
@@ -27,6 +27,12 @@ const collectionMenu = [
         title: "Cartes",
         url: "/collection/cards",
         icon: Sheet,
+    },
+    {
+        title: "Evènements",
+        url: "https://joutes.app",
+        icon: ExternalLinkIcon,
+        external: true,
     },
 ];
 
@@ -60,7 +66,7 @@ export async function MainSideBar() {
                                     key={item.title}
                                 >
                                     <SidebarMenuButton asChild>
-                                        <Link href={item.url} className="flex items-center gap-2">
+                                        <Link href={item.url} className="flex items-center gap-2" target={item.external ? "_blank" : "_self"} rel={item.external ? "noopener noreferrer" : undefined}>
                                             {item.icon ? <item.icon size={16} /> : null}
                                             {item.title}
                                         </Link>

@@ -17,7 +17,7 @@ const gamesMenus: { [slug: string]: {
             icon: SearchIcon,
         },
         {
-            title: "Erratas",
+            title: "Erratas & Rulings",
             url: "/riftbound/erratas",
             icon: LibraryIcon,
         },
