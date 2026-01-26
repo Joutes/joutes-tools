@@ -85,7 +85,7 @@ export async function importCards() {
     const batch = cardsSanitized.slice(i, i + 5000);
     console.log(`Prepared batch ${i / 5000 + 1} (${batch.length} cards)`);
 
-    await meilisearch.index(indexes.riftbound).addDocuments(batch);
+    await meilisearch.index(indexes.riftbound.name).addDocuments(batch);
     await db.collection('cards').insertMany(batch.map(card => ({
       ...card,
       gameId: new ObjectId('69009afea722eab4fa0e55c4'),
