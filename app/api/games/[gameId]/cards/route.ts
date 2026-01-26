@@ -2,8 +2,19 @@ import {NextRequest, NextResponse} from "next/server";
 import {BoosterCard} from "@/lib/types/booster";
 import meilisearch, {indexes} from "@/lib/meilisearch";
 
-async function search({ searchQuery, lang, setCode }: { searchQuery: string; lang: string; setCode: string }): Promise<BoosterCard[]> {
-  const index = meilisearch.index<BoosterCard>(indexes.riftbound);
+async function search({ gameId, searchQuery, lang, setCode }: { gameId: string; searchQuery: string; lang: string; setCode: string }): Promise<BoosterCard[]> {
+  const indexConfig = indexes[gameId];
+  if (!indexConfig) {
+    console.error(`No index found for gameId: ${gameId}`);
+    return [];
+  }
+
+  const index = meilisearch.index<BoosterCard & {
+    poster?: string;
+    collector_number?: string;
+    set?: string;
+    [key: string]: any;
+  }>(indexConfig.name);
 
   const queryOptions: { filter: string[] } = {filter: []};
   let queryString = "";
@@ -26,11 +37,11 @@ async function search({ searchQuery, lang, setCode }: { searchQuery: string; lan
   if (setResult?.groups?.set === '*') {
   } else if (setResult?.groups?.set) {
     queryOptions.filter.push(
-      `setCode = ${setResult?.groups?.set}`,
+      `${indexConfig.keys.set} = ${setResult?.groups?.set}`,
     );
   } else if (setCode && setCode !== '*') {
     queryOptions.filter.push(
-      `setCode = ${setCode}`,
+      `${indexConfig.keys.set} = ${setCode}`,
     );
   }
 
@@ -38,14 +49,15 @@ async function search({ searchQuery, lang, setCode }: { searchQuery: string; lan
   const cnResult = cnRegex.exec(searchQuery);
   if (cnResult?.groups?.cn) {
     queryOptions.filter.push(
-      `collectorNumber = ${cnResult?.groups?.cn}`,
+      `${indexConfig.keys.collectorNumber} = ${cnResult?.groups?.cn}`,
     );
   } else {
     const queryNumber = parseInt(searchQuery);
     if (!isNaN(queryNumber)) {
-      queryOptions.filter.push(
-        `collectorNumber CONTAINS "${queryNumber}"`,
-      );
+      queryString = searchQuery;
+      // queryOptions.filter.push(
+      //   `${indexConfig.keys.collectorNumber} CONTAINS "${queryNumber}"`,
+      // );
     } else {
       queryString = searchQuery;
     }
@@ -53,7 +65,12 @@ async function search({ searchQuery, lang, setCode }: { searchQuery: string; lan
 
   const result = await index.search(queryString, queryOptions);
 
-  return result.hits;
+  return result.hits.map(result => ({
+    ...result,
+    image: (result.image || result.poster) ?? '',
+    collectorNumber: result[indexConfig.keys.collectorNumber],
+    setCode: result[indexConfig.keys.set],
+  }));
 }
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ gameId: string }> }) {
@@ -65,6 +82,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const lang = searchParams.get('lang') || 'en';
 
   const cards = await search({
+    gameId,
     searchQuery,
     lang,
     setCode,

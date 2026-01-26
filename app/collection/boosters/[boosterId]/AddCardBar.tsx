@@ -4,17 +4,24 @@ import React, {useEffect, useState} from "react";
 import {Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList} from "@/components/ui/command";
 import {BoosterCard} from "@/lib/types/booster";
 import {addCardAction} from "@/app/collection/boosters/action";
+import useGame from "@/hooks/use-game";
 
 export default function AddCardBar({boosterId, setCode, lang}: {
   boosterId: string;
   setCode: string;
   lang: string;
 }) {
+  const gameContext = useGame();
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [searchResults, setSearchResults] = useState<BoosterCard[]>([]);
 
   async function search(): Promise<BoosterCard[]> {
-    const resultsRaw = await fetch('/api/games/riftbound/cards?setCode=' + setCode + '&searchQuery=' + encodeURIComponent(searchQuery) + '&lang=' + lang);
+    if (!gameContext.game.slug) {
+      console.debug('No game slug found in game context. Select a game first.');
+      return [];
+    }
+
+    const resultsRaw = await fetch(`/api/games/${gameContext.game.slug}/cards?setCode=` + setCode + '&searchQuery=' + encodeURIComponent(searchQuery) + '&lang=' + lang);
 
     const results = await resultsRaw.json() as BoosterCard[];
 

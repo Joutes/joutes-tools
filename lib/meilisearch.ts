@@ -7,7 +7,19 @@ const meilisearch = new Meilisearch({
 
 export default meilisearch;
 
-export const indexes = {
-  riftbound: 'riftbound-cards',
-  mtg: 'mtg-cards'
+export const indexes: { [gameSlug: string]: { name: string; keys: { set: string; collectorNumber: string } } } = {
+  riftbound: {
+    name: 'riftbound-cards',
+    keys: {
+      set: 'setCode',
+      collectorNumber: 'collectorNumber',
+    }
+  },
+  mtg: {
+    name: 'mtg-cards',
+    keys: {
+      set: 'set',
+      collectorNumber: 'collector_number',
+    },
+  },
 };
