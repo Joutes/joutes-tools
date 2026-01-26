@@ -9,4 +9,5 @@ export default meilisearch;
 
 export const indexes = {
   riftbound: 'riftbound-cards',
+  mtg: 'mtg-cards'
 };
