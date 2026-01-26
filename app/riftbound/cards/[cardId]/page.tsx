@@ -16,7 +16,7 @@ export default async function RiftboundCardDetailPage({
   const { cardId } = await params;
 
   // Récupérer les informations de la carte depuis Meilisearch
-  const index = meilisearch.index<BoosterCard>(indexes.riftbound);
+  const index = meilisearch.index<BoosterCard>(indexes.riftbound.name);
   const card = await index.getDocument(cardId);
 
   if (!card) {
