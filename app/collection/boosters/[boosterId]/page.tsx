@@ -57,6 +57,7 @@ export default async function BoosterDetailsPage({params}: { params: Promise<{ b
             boosterId={booster.id}
             setCode={booster.setCode}
             lang={booster.lang ?? 'en'}
+            gameSlug={booster.game?.slug}
           />
         </div>
 
