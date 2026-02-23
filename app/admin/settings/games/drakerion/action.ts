@@ -7,6 +7,12 @@ import {headers} from "next/headers";
 import db from "@/lib/mongodb";
 import {ObjectId} from "bson";
 
+const sets = {
+  'Core set': {
+    code: "CORE",
+  },
+};
+
 export async function importCards() {
   console.log('Starting Drakerion card import...');
 
@@ -43,7 +49,7 @@ export async function importCards() {
     id: cardRaw.id,
     image: `https://www.drakerion.cards${cardRaw.imagePath}`,
     lang: 'fr',
-    setCode: cardRaw.cardSet,
+    setCode: 'CORE',
     collectorNumber: cardRaw.id,
     name: cardRaw.name,
     type: cardRaw.type,

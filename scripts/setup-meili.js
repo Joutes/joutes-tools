@@ -1,6 +1,7 @@
 import {MeiliSearch} from "meilisearch";
 
 (async () => {
+  const indexName = 'drakerion-cards';
   const meiliEndpoint = 'http://localhost:7700';
   const apiKey = undefined;
   const client = new MeiliSearch({
@@ -10,7 +11,7 @@ import {MeiliSearch} from "meilisearch";
 
   // Delete the index if it already exists
   try {
-    await client.index('riftbound-cards').delete();
+    await client.index(indexName).delete();
     console.info('Existing index deleted');
   } catch (e) {
     console.info('Index does not exist, no need to delete');
@@ -23,7 +24,7 @@ import {MeiliSearch} from "meilisearch";
       'Authorization': `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      "uid": "riftbound-cards",
+      "uid": indexName,
       "primaryKey": "id"
     }),
   }).then((response) => {
@@ -32,7 +33,7 @@ import {MeiliSearch} from "meilisearch";
     }
   });
 
-  await fetch(`${meiliEndpoint}/indexes/riftbound-cards/settings`, {
+  await fetch(`${meiliEndpoint}/indexes/${indexName}/settings`, {
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',
