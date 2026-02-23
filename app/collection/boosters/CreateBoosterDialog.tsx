@@ -83,7 +83,7 @@ export function CreateBoosterDialog({games}: Props) {
   const [isPending, startTransition] = useTransition();
 
   const selectedGame = games.find((g) => g.id === selectedGameId);
-  const boosterTypes = BOOSTER_TYPES[selectedGame?.name.toLowerCase()] ?? [];
+  const boosterTypes = BOOSTER_TYPES[selectedGame?.name.toLowerCase() ?? ''] ?? [];
 
   useEffect(() => {
     if (selectedGame) {
