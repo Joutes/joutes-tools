@@ -49,6 +49,10 @@ const BOOSTER_TYPES: Record<string, {value: string; label: string}[]> = {
     {value: "AP", label: "Avant-première"},
     {value: "OTHER", label: "Autre"},
   ],
+  drakerion: [
+    {value: "SET", label: "Classique"},
+    {value: "OTHER", label: "Autre"},
+  ],
 };
 
 const LANGUAGES = [
