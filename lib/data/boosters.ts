@@ -90,8 +90,14 @@ export async function getBooster(boosterId: string): Promise<Booster | null> {
     boosterId: new ObjectId(boosterId),
   }).toArray();
 
+  const game = await db.collection('games').findOne({_id: booster.gameId}, {projection: {slug: 1}});
+
   return {
     gameId: booster.gameId.toString(),
+    game: game ? {
+      id: booster.gameId.toString(),
+      slug: game?.slug,
+    } : undefined,
     userId: booster.userId.toString(),
     setCode: booster.setCode,
     lang: booster.lang,

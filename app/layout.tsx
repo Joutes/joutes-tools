@@ -4,6 +4,7 @@ import "./globals.css";
 import { MainSideBar } from "@/components/MainSideBar";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import {GameContextProvider} from "@/hooks/game-context";
+import { Analytics } from "@vercel/analytics/next";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -30,6 +31,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <Analytics />
         <GameContextProvider>
           <SidebarProvider>
             <MainSideBar />

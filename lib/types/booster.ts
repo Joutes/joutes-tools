@@ -30,6 +30,10 @@ export type BoosterCardDb = {
 
 export type Booster = {
   gameId: Game['id'];
+  game? : {
+    id: Game['id'];
+    slug?: string;
+  };
   userId: User['id'];
   setCode: string;
   lang: string;
