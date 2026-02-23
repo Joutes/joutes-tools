@@ -22,4 +22,11 @@ export const indexes: { [gameSlug: string]: { name: string; keys: { set: string;
       collectorNumber: 'collector_number',
     },
   },
+  drakerion: {
+    name: 'drakerion-cards',
+    keys: {
+      set: 'setCode',
+      collectorNumber: 'collectorNumber',
+    },
+  },
 };
