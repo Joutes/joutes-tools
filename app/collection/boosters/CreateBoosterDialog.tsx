@@ -29,6 +29,13 @@ type Props = {
 };
 
 const BOOSTER_TYPES: Record<string, {value: string; label: string}[]> = {
+  "star wars unlimited": [
+    {value: "CARBONITE", label: "Carbonite"},
+    {value: "AP", label: "Avant-première"},
+    {value: "WEEKLY", label: "Weekly"},
+    {value: "SET", label: "Set"},
+    {value: "OTHER", label: "Autre"},
+  ],
   swu: [
     {value: "CARBONITE", label: "Carbonite"},
     {value: "AP", label: "Avant-première"},
@@ -76,13 +83,7 @@ export function CreateBoosterDialog({games}: Props) {
   const [isPending, startTransition] = useTransition();
 
   const selectedGame = games.find((g) => g.id === selectedGameId);
-  const boosterTypes = selectedGame?.name.toLowerCase() === "star wars unlimited"
-    ? BOOSTER_TYPES.swu
-    : selectedGame?.name.toLowerCase() === "magic"
-    ? BOOSTER_TYPES.magic
-    : selectedGame?.name.toLowerCase() === "riftbound"
-    ? BOOSTER_TYPES.riftbound
-    : [];
+  const boosterTypes = BOOSTER_TYPES[selectedGame?.name.toLowerCase()] ?? [];
 
   useEffect(() => {
     if (selectedGame) {
