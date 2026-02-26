@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
@@ -163,14 +163,15 @@ function SetupPhase({ onStart }: { onStart: (players: Player[]) => void }) {
 
 // ─── Tracking ─────────────────────────────────────────────────────────────────
 
-function TrackingPhase({ players, onReset }: { players: Player[]; onReset: () => void }) {
-  const [turns, setTurns] = useState<Turn[]>([]);
+interface TrackingPhaseProps {
+  players: Player[];
+  turns: Turn[];
+  addTurn: (playerId: string) => void;
+  deleteTurn: (turnId: string) => void;
+  onReset: () => void;
+}
 
-  const addTurn = (playerId: string) =>
-    setTurns((prev) => [...prev, { id: crypto.randomUUID(), playerId }]);
-
-  const deleteTurn = (turnId: string) =>
-    setTurns((prev) => prev.filter((t) => t.id !== turnId));
+function TrackingPhase({ players, turns, addTurn, deleteTurn, onReset }: TrackingPhaseProps) {
 
   return (
     <div className="flex flex-col h-screen overflow-hidden">
@@ -319,14 +320,84 @@ function TrackingPhase({ players, onReset }: { players: Player[]; onReset: () =>
   );
 }
 
+// ─── Persistence ─────────────────────────────────────────────────────────────
+
+const STORAGE_KEY = "riftbound-tracker";
+
+interface PersistedState {
+  players: Player[];
+  turns: Turn[];
+}
+
+function loadState(): PersistedState | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as PersistedState;
+  } catch {
+    return null;
+  }
+}
+
+function saveState(state: PersistedState) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch {
+    // quota exceeded ou SSR – on ignore
+  }
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function RiftboundTrackerPage() {
   const [players, setPlayers] = useState<Player[] | null>(null);
+  const [turns, setTurns] = useState<Turn[]>([]);
+  const [hydrated, setHydrated] = useState(false);
+
+  // Chargement depuis localStorage après hydratation
+  useEffect(() => {
+    const saved = loadState();
+    if (saved) {
+      setPlayers(saved.players);
+      setTurns(saved.turns);
+    }
+    setHydrated(true);
+  }, []);
+
+  // Sauvegarde à chaque changement d'état
+  useEffect(() => {
+    if (!hydrated) return;
+    if (!players) {
+      localStorage.removeItem(STORAGE_KEY);
+    } else {
+      saveState({ players, turns });
+    }
+  }, [players, turns, hydrated]);
+
+  const addTurn = (playerId: string) =>
+    setTurns((prev) => [...prev, { id: crypto.randomUUID(), playerId }]);
+
+  const deleteTurn = (turnId: string) =>
+    setTurns((prev) => prev.filter((t) => t.id !== turnId));
+
+  const handleReset = () => {
+    setPlayers(null);
+    setTurns([]);
+  };
+
+  if (!hydrated) return null;
 
   if (!players) {
     return <SetupPhase onStart={setPlayers} />;
   }
 
-  return <TrackingPhase players={players} onReset={() => setPlayers(null)} />;
+  return (
+    <TrackingPhase
+      players={players}
+      turns={turns}
+      addTurn={addTurn}
+      deleteTurn={deleteTurn}
+      onReset={handleReset}
+    />
+  );
 }
