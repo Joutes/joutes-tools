@@ -129,17 +129,7 @@ function RuneIcon({
 
 // ─── PlayerHeader ─────────────────────────────────────────────────────────────
 
-function PlayerHeader({
-  player,
-  gameState,
-  hasTurn,
-  onScoreChange,
-}: {
-  player: Player;
-  gameState: PlayerGameState;
-  hasTurn: boolean;
-  onScoreChange: (delta: number) => void;
-}) {
+function PlayerHeader({ player }: { player: Player }) {
   return (
     <div className="space-y-2 text-left">
       <div className="font-semibold text-sm">{player.pseudo || "Joueur"}</div>
@@ -170,30 +160,6 @@ function PlayerHeader({
           })}
         </div>
       )}
-
-      {/* Score */}
-      <div className="flex items-center gap-2 pt-1">
-        <button
-          disabled={!hasTurn}
-          onClick={() => onScoreChange(-1)}
-          title="Retirer un point"
-          className="w-6 h-6 rounded border flex items-center justify-center hover:bg-accent disabled:opacity-30 disabled:cursor-not-allowed"
-        >
-          <Minus className="w-3 h-3" />
-        </button>
-        <span className="text-lg font-bold tabular-nums w-8 text-center">
-          {gameState.score}
-        </span>
-        <button
-          disabled={!hasTurn}
-          onClick={() => onScoreChange(+1)}
-          title="Ajouter un point"
-          className="w-6 h-6 rounded border flex items-center justify-center hover:bg-accent disabled:opacity-30 disabled:cursor-not-allowed"
-        >
-          <Plus className="w-3 h-3" />
-        </button>
-      </div>
-
     </div>
   );
 }
@@ -209,6 +175,7 @@ function TurnCell({
   gameState,
   onRuneClick,
   onAddRune,
+  onScoreChange,
 }: {
   turn: Turn;
   player: Player;
@@ -218,6 +185,7 @@ function TurnCell({
   gameState: PlayerGameState;
   onRuneClick: (runeId: string) => void;
   onAddRune: (color: Color) => void;
+  onScoreChange: (delta: number) => void;
 }) {
   const snapshot = turn.runeSnapshot[player.id] ?? [];
   const events = turn.events.filter((e) => e.playerId === player.id);
@@ -230,6 +198,29 @@ function TurnCell({
         isActive && "bg-primary/10",
       )}
     >
+      {/* Score — dernier tour uniquement */}
+      {isLastTurn && (
+        <div className="flex items-center gap-1.5 mb-1">
+          <button
+            onClick={() => onScoreChange(-1)}
+            title="Retirer un point"
+            className="w-6 h-6 rounded border flex items-center justify-center hover:bg-accent"
+          >
+            <Minus className="w-3 h-3" />
+          </button>
+          <span className="text-base font-bold tabular-nums w-8 text-center">
+            {gameState.score}
+          </span>
+          <button
+            onClick={() => onScoreChange(+1)}
+            title="Ajouter un point"
+            className="w-6 h-6 rounded border flex items-center justify-center hover:bg-accent"
+          >
+            <Plus className="w-3 h-3" />
+          </button>
+        </div>
+      )}
+
       {isActive && (
         <div className="text-xs font-semibold text-primary mb-0.5">
           Tour {turnIndex + 1}
@@ -437,8 +428,6 @@ function TrackingPhase({
   addRune,
   onReset,
 }: TrackingPhaseProps) {
-  const hasTurn = turns.length > 0;
-
   return (
     <div className="flex flex-col h-screen overflow-hidden">
       {/* Header */}
@@ -463,12 +452,7 @@ function TrackingPhase({
                   key={player.id}
                   className="w-56 border-b border-r last:border-r-0 p-3 align-top"
                 >
-                  <PlayerHeader
-                    player={player}
-                    gameState={playerStates[player.id] ?? { score: 0, runes: [] }}
-                    hasTurn={hasTurn}
-                    onScoreChange={(delta) => changeScore(player.id, delta)}
-                  />
+                  <PlayerHeader player={player} />
                 </th>
               ))}
             </tr>
@@ -520,6 +504,7 @@ function TrackingPhase({
                       gameState={playerStates[player.id] ?? { score: 0, runes: [] }}
                       onRuneClick={(runeId) => cycleRune(player.id, runeId)}
                       onAddRune={(color) => addRune(player.id, color)}
+                      onScoreChange={(delta) => changeScore(player.id, delta)}
                     />
                   </td>
                 ))}
