@@ -644,8 +644,22 @@ export default function RiftboundTrackerPage() {
     ]);
   };
 
-  const deleteTurn = (turnId: string) =>
-    setTurns((prev) => prev.filter((t) => t.id !== turnId));
+  const deleteTurn = (turnId: string) => {
+    setTurns((prev) => {
+      const turn = prev.find((t) => t.id === turnId);
+      if (turn && turn.events.length > 0) {
+        setPlayerStates((ps) => {
+          const next = { ...ps };
+          for (const ev of turn.events) {
+            const current = next[ev.playerId] ?? makePlayerGameState();
+            next[ev.playerId] = { ...current, score: current.score - ev.delta };
+          }
+          return next;
+        });
+      }
+      return prev.filter((t) => t.id !== turnId);
+    });
+  };
 
   const deleteEvent = (turnId: string, eventId: string, delta: number) => {
     alert(`delete event ${eventId} with delta ${delta} from turn ${turnId}`);
