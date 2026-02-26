@@ -134,15 +134,11 @@ function PlayerHeader({
   gameState,
   hasTurn,
   onScoreChange,
-  onRuneClick,
-  onAddRune,
 }: {
   player: Player;
   gameState: PlayerGameState;
   hasTurn: boolean;
   onScoreChange: (delta: number) => void;
-  onRuneClick: (runeId: string) => void;
-  onAddRune: (color: Color) => void;
 }) {
   return (
     <div className="space-y-2 text-left">
@@ -198,41 +194,6 @@ function PlayerHeader({
         </button>
       </div>
 
-      {/* Runes courantes */}
-      <div className="pt-1">
-        <div className="text-[10px] text-muted-foreground mb-1.5 uppercase tracking-wide">
-          Runes
-        </div>
-        <div className="flex flex-wrap gap-1.5 items-end min-h-8">
-          {gameState.runes.map((rune) => (
-            <RuneIcon
-              key={rune.id}
-              rune={rune}
-              interactive
-              onClick={() => onRuneClick(rune.id)}
-            />
-          ))}
-        </div>
-        {player.colors.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-2">
-            {player.colors.map((c) => {
-              const def = colorDef(c);
-              return (
-                <button
-                  key={c}
-                  onClick={() => onAddRune(c)}
-                  title={`Ajouter rune ${c}`}
-                  className={cn(
-                    "w-4 h-4 rounded-sm border opacity-50 hover:opacity-100 transition-opacity",
-                    def.bg,
-                    def.border,
-                  )}
-                />
-              );
-            })}
-          </div>
-        )}
-      </div>
     </div>
   );
 }
@@ -244,14 +205,23 @@ function TurnCell({
   player,
   isActive,
   turnIndex,
+  isLastTurn,
+  gameState,
+  onRuneClick,
+  onAddRune,
 }: {
   turn: Turn;
   player: Player;
   isActive: boolean;
   turnIndex: number;
+  isLastTurn: boolean;
+  gameState: PlayerGameState;
+  onRuneClick: (runeId: string) => void;
+  onAddRune: (color: Color) => void;
 }) {
   const snapshot = turn.runeSnapshot[player.id] ?? [];
   const events = turn.events.filter((e) => e.playerId === player.id);
+  const displayRunes = isLastTurn ? gameState.runes : snapshot;
 
   return (
     <div
@@ -265,13 +235,46 @@ function TurnCell({
           Tour {turnIndex + 1}
         </div>
       )}
-      {snapshot.length > 0 && (
+
+      {/* Runes : live (dernier tour) ou snapshot (tours précédents) */}
+      {displayRunes.length > 0 && (
         <div className="flex flex-wrap gap-1 items-end">
-          {snapshot.map((rune) => (
-            <RuneIcon key={rune.id} rune={rune} />
-          ))}
+          {displayRunes.map((rune) =>
+            isLastTurn ? (
+              <RuneIcon
+                key={rune.id}
+                rune={rune}
+                interactive
+                onClick={() => onRuneClick(rune.id)}
+              />
+            ) : (
+              <RuneIcon key={rune.id} rune={rune} />
+            ),
+          )}
         </div>
       )}
+
+      {/* Boutons d'ajout de rune — dernier tour uniquement */}
+      {isLastTurn && player.colors.length > 0 && (
+        <div className="flex flex-wrap gap-1 mt-1">
+          {player.colors.map((c) => {
+            const def = colorDef(c);
+            return (
+              <button
+                key={c}
+                onClick={() => onAddRune(c)}
+                title={`Ajouter rune ${c}`}
+                className={cn(
+                  "w-4 h-4 rounded-sm border opacity-50 hover:opacity-100 transition-opacity",
+                  def.bg,
+                  def.border,
+                )}
+              />
+            );
+          })}
+        </div>
+      )}
+
       {events.map((ev) => (
         <div
           key={ev.id}
@@ -465,8 +468,6 @@ function TrackingPhase({
                     gameState={playerStates[player.id] ?? { score: 0, runes: [] }}
                     hasTurn={hasTurn}
                     onScoreChange={(delta) => changeScore(player.id, delta)}
-                    onRuneClick={(runeId) => cycleRune(player.id, runeId)}
-                    onAddRune={(color) => addRune(player.id, color)}
                   />
                 </th>
               ))}
@@ -515,6 +516,10 @@ function TrackingPhase({
                       player={player}
                       isActive={player.id === turn.playerId}
                       turnIndex={index}
+                      isLastTurn={index === turns.length - 1}
+                      gameState={playerStates[player.id] ?? { score: 0, runes: [] }}
+                      onRuneClick={(runeId) => cycleRune(player.id, runeId)}
+                      onAddRune={(color) => addRune(player.id, color)}
                     />
                   </td>
                 ))}
