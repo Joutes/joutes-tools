@@ -2,7 +2,7 @@
 
 import useGame from "@/hooks/use-game";
 import { SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "./ui/sidebar";
-import { LibraryIcon, ScanIcon, SearchIcon, WatchIcon } from "lucide-react";
+import { LibraryIcon, ScanIcon, SearchIcon, TelescopeIcon, WatchIcon } from "lucide-react";
 import Link from "next/link";
 
 const gamesMenus: { [slug: string]: {
@@ -21,6 +21,11 @@ const gamesMenus: { [slug: string]: {
             url: "/riftbound/erratas",
             icon: LibraryIcon,
         },
+        {
+            title: 'Judge Tracker',
+            url: '/riftbound/tracker',
+            icon: TelescopeIcon,
+        }
     ],
     'swu': [
         {
