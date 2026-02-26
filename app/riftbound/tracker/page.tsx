@@ -3,14 +3,21 @@
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Trash2 } from "lucide-react";
+import { Trash2, Plus, Minus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Color = "Fury" | "Calm" | "Mind" | "Body" | "Chaos" | "Order";
+type RuneState = "ready" | "exhausted" | "recycled";
 
-const COLORS: { name: Color; bg: string; text: string; border: string; inactiveBorder: string }[] = [
+const COLORS: {
+  name: Color;
+  bg: string;
+  text: string;
+  border: string;
+  inactiveBorder: string;
+}[] = [
   { name: "Fury",  bg: "bg-red-500",    text: "text-white", border: "border-red-500",    inactiveBorder: "border-red-300    hover:border-red-500"    },
   { name: "Calm",  bg: "bg-blue-500",   text: "text-white", border: "border-blue-500",   inactiveBorder: "border-blue-300   hover:border-blue-500"   },
   { name: "Mind",  bg: "bg-purple-500", text: "text-white", border: "border-purple-500", inactiveBorder: "border-purple-300 hover:border-purple-500" },
@@ -27,16 +34,257 @@ interface Player {
   champion: string;
 }
 
+interface Rune {
+  id: string;
+  color: Color;
+  state: RuneState;
+}
+
+interface TurnEvent {
+  id: string;
+  playerId: string;
+  label: string;
+}
+
 interface Turn {
   id: string;
   playerId: string;
+  /** Snapshot des runes à la création du tour (sans recyclées, toutes en ready) */
+  runeSnapshot: Record<string, Rune[]>;
+  events: TurnEvent[];
 }
 
-// ─── Setup ────────────────────────────────────────────────────────────────────
+interface PlayerGameState {
+  score: number;
+  runes: Rune[];
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function makePlayer(): Player {
   return { id: crypto.randomUUID(), pseudo: "", legend: "", colors: [], champion: "" };
 }
+
+function makePlayerGameState(): PlayerGameState {
+  return { score: 0, runes: [] };
+}
+
+function colorDef(color: Color) {
+  return COLORS.find((c) => c.name === color)!;
+}
+
+// ─── RuneIcon ─────────────────────────────────────────────────────────────────
+
+function RuneIcon({
+  rune,
+  interactive = false,
+  onClick,
+}: {
+  rune: Rune;
+  interactive?: boolean;
+  onClick?: () => void;
+}) {
+  const def = colorDef(rune.color);
+  const isVertical = rune.state === "ready";
+  const isRecycled = rune.state === "recycled";
+
+  const shape = (
+    <div
+      className={cn(
+        "relative rounded-sm transition-all",
+        def.bg,
+        isVertical ? "w-4 h-8" : "w-8 h-4",
+        isRecycled && "opacity-60",
+      )}
+    >
+      {isRecycled && (
+        <X
+          className={cn(
+            "absolute inset-0 m-auto w-3 h-3",
+            rune.color === "Order" ? "text-black/70" : "text-white/80",
+          )}
+        />
+      )}
+    </div>
+  );
+
+  if (!interactive) return <div className="flex items-end">{shape}</div>;
+
+  return (
+    <button
+      onClick={onClick}
+      title={
+        rune.state === "ready"
+          ? "Épuiser"
+          : rune.state === "exhausted"
+            ? "Recycler"
+            : "Supprimer"
+      }
+      className="flex items-end hover:scale-110 transition-transform"
+    >
+      {shape}
+    </button>
+  );
+}
+
+// ─── PlayerHeader ─────────────────────────────────────────────────────────────
+
+function PlayerHeader({
+  player,
+  gameState,
+  hasTurn,
+  onScoreChange,
+  onRuneClick,
+  onAddRune,
+}: {
+  player: Player;
+  gameState: PlayerGameState;
+  hasTurn: boolean;
+  onScoreChange: (delta: number) => void;
+  onRuneClick: (runeId: string) => void;
+  onAddRune: (color: Color) => void;
+}) {
+  return (
+    <div className="space-y-2 text-left">
+      <div className="font-semibold text-sm">{player.pseudo || "Joueur"}</div>
+      {player.legend && (
+        <div className="text-xs text-muted-foreground">{player.legend}</div>
+      )}
+      {player.champion && (
+        <div className="text-xs text-muted-foreground">
+          Champion : {player.champion}
+        </div>
+      )}
+      {player.colors.length > 0 && (
+        <div className="flex flex-wrap gap-1">
+          {player.colors.map((c) => {
+            const def = colorDef(c);
+            return (
+              <span
+                key={c}
+                className={cn(
+                  "px-1.5 py-0.5 rounded-full text-[10px] font-semibold",
+                  def.bg,
+                  def.text,
+                )}
+              >
+                {c}
+              </span>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Score */}
+      <div className="flex items-center gap-2 pt-1">
+        <button
+          disabled={!hasTurn}
+          onClick={() => onScoreChange(-1)}
+          title="Retirer un point"
+          className="w-6 h-6 rounded border flex items-center justify-center hover:bg-accent disabled:opacity-30 disabled:cursor-not-allowed"
+        >
+          <Minus className="w-3 h-3" />
+        </button>
+        <span className="text-lg font-bold tabular-nums w-8 text-center">
+          {gameState.score}
+        </span>
+        <button
+          disabled={!hasTurn}
+          onClick={() => onScoreChange(+1)}
+          title="Ajouter un point"
+          className="w-6 h-6 rounded border flex items-center justify-center hover:bg-accent disabled:opacity-30 disabled:cursor-not-allowed"
+        >
+          <Plus className="w-3 h-3" />
+        </button>
+      </div>
+
+      {/* Runes courantes */}
+      <div className="pt-1">
+        <div className="text-[10px] text-muted-foreground mb-1.5 uppercase tracking-wide">
+          Runes
+        </div>
+        <div className="flex flex-wrap gap-1.5 items-end min-h-8">
+          {gameState.runes.map((rune) => (
+            <RuneIcon
+              key={rune.id}
+              rune={rune}
+              interactive
+              onClick={() => onRuneClick(rune.id)}
+            />
+          ))}
+        </div>
+        {player.colors.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-2">
+            {player.colors.map((c) => {
+              const def = colorDef(c);
+              return (
+                <button
+                  key={c}
+                  onClick={() => onAddRune(c)}
+                  title={`Ajouter rune ${c}`}
+                  className={cn(
+                    "w-4 h-4 rounded-sm border opacity-50 hover:opacity-100 transition-opacity",
+                    def.bg,
+                    def.border,
+                  )}
+                />
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── TurnCell ─────────────────────────────────────────────────────────────────
+
+function TurnCell({
+  turn,
+  player,
+  isActive,
+  turnIndex,
+}: {
+  turn: Turn;
+  player: Player;
+  isActive: boolean;
+  turnIndex: number;
+}) {
+  const snapshot = turn.runeSnapshot[player.id] ?? [];
+  const events = turn.events.filter((e) => e.playerId === player.id);
+
+  return (
+    <div
+      className={cn(
+        "p-2 min-h-14 flex flex-col gap-1",
+        isActive && "bg-primary/10",
+      )}
+    >
+      {isActive && (
+        <div className="text-xs font-semibold text-primary mb-0.5">
+          Tour {turnIndex + 1}
+        </div>
+      )}
+      {snapshot.length > 0 && (
+        <div className="flex flex-wrap gap-1 items-end">
+          {snapshot.map((rune) => (
+            <RuneIcon key={rune.id} rune={rune} />
+          ))}
+        </div>
+      )}
+      {events.map((ev) => (
+        <div
+          key={ev.id}
+          className="text-[11px] text-muted-foreground italic leading-tight"
+        >
+          {ev.label}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── Setup ────────────────────────────────────────────────────────────────────
 
 function SetupPhase({ onStart }: { onStart: (players: Player[]) => void }) {
   const [playerCount, setPlayerCount] = useState(2);
@@ -132,7 +380,7 @@ function SetupPhase({ onStart }: { onStart: (players: Player[]) => void }) {
                         "px-3 py-1 rounded-full text-xs font-semibold border-2 transition-all select-none",
                         active
                           ? cn(color.bg, color.text, color.border)
-                          : cn("bg-transparent text-muted-foreground", color.inactiveBorder)
+                          : cn("bg-transparent text-muted-foreground", color.inactiveBorder),
                       )}
                     >
                       {color.name}
@@ -166,12 +414,27 @@ function SetupPhase({ onStart }: { onStart: (players: Player[]) => void }) {
 interface TrackingPhaseProps {
   players: Player[];
   turns: Turn[];
+  playerStates: Record<string, PlayerGameState>;
   addTurn: (playerId: string) => void;
   deleteTurn: (turnId: string) => void;
+  changeScore: (playerId: string, delta: number) => void;
+  cycleRune: (playerId: string, runeId: string) => void;
+  addRune: (playerId: string, color: Color) => void;
   onReset: () => void;
 }
 
-function TrackingPhase({ players, turns, addTurn, deleteTurn, onReset }: TrackingPhaseProps) {
+function TrackingPhase({
+  players,
+  turns,
+  playerStates,
+  addTurn,
+  deleteTurn,
+  changeScore,
+  cycleRune,
+  addRune,
+  onReset,
+}: TrackingPhaseProps) {
+  const hasTurn = turns.length > 0;
 
   return (
     <div className="flex flex-col h-screen overflow-hidden">
@@ -189,51 +452,24 @@ function TrackingPhase({ players, turns, addTurn, deleteTurn, onReset }: Trackin
           {/* En-têtes joueurs */}
           <thead className="sticky top-0 z-10 bg-background">
             <tr>
-              {/* Colonne numéro de tour */}
               <th className="w-16 border-b border-r p-3 text-xs font-medium text-muted-foreground text-center align-bottom">
                 Tour
               </th>
-              {players.map((player) => {
-                return (
-                  <th
-                    key={player.id}
-                    className="w-52 border-b border-r last:border-r-0 p-3 text-left align-top"
-                  >
-                    <div className="font-semibold text-sm">
-                      {player.pseudo || "Joueur"}
-                    </div>
-                    {player.legend && (
-                      <div className="text-xs text-muted-foreground mt-0.5">
-                        {player.legend}
-                      </div>
-                    )}
-                    {player.champion && (
-                      <div className="text-xs text-muted-foreground">
-                        Champion : {player.champion}
-                      </div>
-                    )}
-                    {player.colors.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-1.5">
-                        {player.colors.map((c) => {
-                          const def = COLORS.find((col) => col.name === c)!;
-                          return (
-                            <span
-                              key={c}
-                              className={cn(
-                                "px-1.5 py-0.5 rounded-full text-[10px] font-semibold",
-                                def.bg,
-                                def.text
-                              )}
-                            >
-                              {c}
-                            </span>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </th>
-                );
-              })}
+              {players.map((player) => (
+                <th
+                  key={player.id}
+                  className="w-56 border-b border-r last:border-r-0 p-3 align-top"
+                >
+                  <PlayerHeader
+                    player={player}
+                    gameState={playerStates[player.id] ?? { score: 0, runes: [] }}
+                    hasTurn={hasTurn}
+                    onScoreChange={(delta) => changeScore(player.id, delta)}
+                    onRuneClick={(runeId) => cycleRune(player.id, runeId)}
+                    onAddRune={(color) => addRune(player.id, color)}
+                  />
+                </th>
+              ))}
             </tr>
           </thead>
 
@@ -250,7 +486,7 @@ function TrackingPhase({ players, turns, addTurn, deleteTurn, onReset }: Trackin
               </tr>
             )}
             {turns.map((turn, index) => (
-              <tr key={turn.id} className="group border-b hover:bg-muted/20">
+              <tr key={turn.id} className="group border-b hover:bg-muted/10">
                 {/* Numéro + suppression */}
                 <td className="w-16 border-r text-center align-middle p-2">
                   <div className="flex items-center justify-center gap-1">
@@ -266,28 +502,22 @@ function TrackingPhase({ players, turns, addTurn, deleteTurn, onReset }: Trackin
                 </td>
 
                 {/* Cellules joueurs */}
-                {players.map((player) => {
-                  const isActive = player.id === turn.playerId;
-                  return (
-                    <td
-                      key={player.id}
-                      className={cn(
-                        "w-52 h-14 border-r last:border-r-0 align-middle",
-                        isActive
-                          ? "bg-primary/10 border-l-[3px] border-l-primary"
-                          : ""
-                      )}
-                    >
-                      {isActive && (
-                        <div className="flex items-center justify-center h-full">
-                          <span className="text-sm font-semibold text-primary px-3">
-                            Tour {index + 1}
-                          </span>
-                        </div>
-                      )}
-                    </td>
-                  );
-                })}
+                {players.map((player) => (
+                  <td
+                    key={player.id}
+                    className={cn(
+                      "w-56 border-r last:border-r-0 align-top",
+                      player.id === turn.playerId && "border-l-[3px] border-l-primary",
+                    )}
+                  >
+                    <TurnCell
+                      turn={turn}
+                      player={player}
+                      isActive={player.id === turn.playerId}
+                      turnIndex={index}
+                    />
+                  </td>
+                ))}
               </tr>
             ))}
           </tbody>
@@ -297,13 +527,9 @@ function TrackingPhase({ players, turns, addTurn, deleteTurn, onReset }: Trackin
       {/* Footer : boutons "Nouveau Tour" */}
       <div className="shrink-0 border-t bg-background">
         <div className="flex">
-          {/* Espace aligné avec la colonne "Tour" */}
           <div className="w-16 shrink-0 border-r" />
           {players.map((player) => (
-            <div
-              key={player.id}
-              className="w-52 shrink-0 p-2 border-r last:border-r-0"
-            >
+            <div key={player.id} className="w-56 shrink-0 p-2 border-r last:border-r-0">
               <Button
                 size="sm"
                 variant="outline"
@@ -327,6 +553,7 @@ const STORAGE_KEY = "riftbound-tracker";
 interface PersistedState {
   players: Player[];
   turns: Turn[];
+  playerStates: Record<string, PlayerGameState>;
 }
 
 function loadState(): PersistedState | null {
@@ -352,6 +579,7 @@ function saveState(state: PersistedState) {
 export default function RiftboundTrackerPage() {
   const [players, setPlayers] = useState<Player[] | null>(null);
   const [turns, setTurns] = useState<Turn[]>([]);
+  const [playerStates, setPlayerStates] = useState<Record<string, PlayerGameState>>({});
   const [hydrated, setHydrated] = useState(false);
 
   // Chargement depuis localStorage après hydratation
@@ -360,6 +588,7 @@ export default function RiftboundTrackerPage() {
     if (saved) {
       setPlayers(saved.players);
       setTurns(saved.turns);
+      setPlayerStates(saved.playerStates ?? {});
     }
     setHydrated(true);
   }, []);
@@ -370,34 +599,121 @@ export default function RiftboundTrackerPage() {
     if (!players) {
       localStorage.removeItem(STORAGE_KEY);
     } else {
-      saveState({ players, turns });
+      saveState({ players, turns, playerStates });
     }
-  }, [players, turns, hydrated]);
+  }, [players, turns, playerStates, hydrated]);
 
-  const addTurn = (playerId: string) =>
-    setTurns((prev) => [...prev, { id: crypto.randomUUID(), playerId }]);
+  // ── Handlers ──
+
+  const handleStart = (newPlayers: Player[]) => {
+    const states: Record<string, PlayerGameState> = {};
+    newPlayers.forEach((p) => { states[p.id] = makePlayerGameState(); });
+    setPlayerStates(states);
+    setPlayers(newPlayers);
+    setTurns([]);
+  };
+
+  const addTurn = (playerId: string) => {
+    const snapshot: Record<string, Rune[]> = {};
+
+    setPlayerStates((prev) => {
+      const next = { ...prev };
+      for (const pid of Object.keys(prev)) {
+        const current = prev[pid].runes;
+        snapshot[pid] = current
+          .filter((r) => r.state !== "recycled")
+          .map((r) => ({ ...r, state: "ready" as const }));
+        next[pid] = {
+          ...prev[pid],
+          runes: current.map((r) =>
+            r.state === "exhausted" ? { ...r, state: "ready" as const } : r,
+          ),
+        };
+      }
+      return next;
+    });
+
+    setTurns((prev) => [
+      ...prev,
+      { id: crypto.randomUUID(), playerId, runeSnapshot: snapshot, events: [] },
+    ]);
+  };
 
   const deleteTurn = (turnId: string) =>
     setTurns((prev) => prev.filter((t) => t.id !== turnId));
 
+  const changeScore = (playerId: string, delta: number) => {
+    setPlayerStates((prev) => {
+      const current = prev[playerId] ?? makePlayerGameState();
+      return { ...prev, [playerId]: { ...current, score: current.score + delta } };
+    });
+    setTurns((prev) => {
+      if (prev.length === 0) return prev;
+      const last = prev[prev.length - 1];
+      const abs = Math.abs(delta);
+      const label =
+        delta > 0
+          ? `A gagné ${abs} point${abs > 1 ? "s" : ""}`
+          : `A perdu ${abs} point${abs > 1 ? "s" : ""}`;
+      const event: TurnEvent = { id: crypto.randomUUID(), playerId, label };
+      return [...prev.slice(0, -1), { ...last, events: [...last.events, event] }];
+    });
+  };
+
+  const cycleRune = (playerId: string, runeId: string) => {
+    setPlayerStates((prev) => {
+      const current = prev[playerId] ?? makePlayerGameState();
+      const target = current.runes.find((r) => r.id === runeId);
+      if (!target) return prev;
+      let runes: Rune[];
+      if (target.state === "ready") {
+        runes = current.runes.map((r) =>
+          r.id === runeId ? { ...r, state: "exhausted" as const } : r,
+        );
+      } else if (target.state === "exhausted") {
+        runes = current.runes.map((r) =>
+          r.id === runeId ? { ...r, state: "recycled" as const } : r,
+        );
+      } else {
+        // recycled → suppression
+        runes = current.runes.filter((r) => r.id !== runeId);
+      }
+      return { ...prev, [playerId]: { ...current, runes } };
+    });
+  };
+
+  const addRune = (playerId: string, color: Color) => {
+    setPlayerStates((prev) => {
+      const current = prev[playerId] ?? makePlayerGameState();
+      const newRune: Rune = { id: crypto.randomUUID(), color, state: "ready" };
+      return { ...prev, [playerId]: { ...current, runes: [...current.runes, newRune] } };
+    });
+  };
+
   const handleReset = () => {
     setPlayers(null);
     setTurns([]);
+    setPlayerStates({});
   };
 
   if (!hydrated) return null;
 
   if (!players) {
-    return <SetupPhase onStart={setPlayers} />;
+    return <SetupPhase onStart={handleStart} />;
   }
 
   return (
     <TrackingPhase
       players={players}
       turns={turns}
+      playerStates={playerStates}
       addTurn={addTurn}
       deleteTurn={deleteTurn}
+      changeScore={changeScore}
+      cycleRune={cycleRune}
+      addRune={addRune}
       onReset={handleReset}
     />
   );
 }
+
