@@ -44,6 +44,7 @@ interface TurnEvent {
   id: string;
   playerId: string;
   label: string;
+  delta: number;
 }
 
 interface Turn {
@@ -176,6 +177,7 @@ function TurnCell({
   onRuneClick,
   onAddRune,
   onScoreChange,
+  onDeleteEvent,
 }: {
   turn: Turn;
   player: Player;
@@ -186,6 +188,7 @@ function TurnCell({
   onRuneClick: (runeId: string) => void;
   onAddRune: (color: Color) => void;
   onScoreChange: (delta: number) => void;
+  onDeleteEvent: (eventId: string, delta: number) => void;
 }) {
   const snapshot = turn.runeSnapshot[player.id] ?? [];
   const events = turn.events.filter((e) => e.playerId === player.id);
@@ -269,9 +272,18 @@ function TurnCell({
       {events.map((ev) => (
         <div
           key={ev.id}
-          className="text-[11px] text-muted-foreground italic leading-tight"
+          className="flex items-center gap-1 group/ev"
         >
-          {ev.label}
+          <span className="text-[11px] text-muted-foreground italic leading-tight flex-1">
+            {ev.label}
+          </span>
+          <button
+            onClick={() => onDeleteEvent(ev.id, ev.delta)}
+            title="Annuler cette action"
+            className="text-red-500 hover:text-red-500/70 shrink-0"
+          >
+            <Trash2 className="w-3 h-3" />
+          </button>
         </div>
       ))}
     </div>
@@ -412,6 +424,7 @@ interface TrackingPhaseProps {
   addTurn: (playerId: string) => void;
   deleteTurn: (turnId: string) => void;
   changeScore: (playerId: string, delta: number) => void;
+  deleteEvent: (turnId: string, eventId: string, delta: number) => void;
   cycleRune: (playerId: string, runeId: string) => void;
   addRune: (playerId: string, color: Color) => void;
   onReset: () => void;
@@ -424,6 +437,7 @@ function TrackingPhase({
   addTurn,
   deleteTurn,
   changeScore,
+  deleteEvent,
   cycleRune,
   addRune,
   onReset,
@@ -505,6 +519,7 @@ function TrackingPhase({
                       onRuneClick={(runeId) => cycleRune(player.id, runeId)}
                       onAddRune={(color) => addRune(player.id, color)}
                       onScoreChange={(delta) => changeScore(player.id, delta)}
+                      onDeleteEvent={(eventId, delta) => deleteEvent(turn.id, eventId, delta)}
                     />
                   </td>
                 ))}
@@ -632,6 +647,27 @@ export default function RiftboundTrackerPage() {
   const deleteTurn = (turnId: string) =>
     setTurns((prev) => prev.filter((t) => t.id !== turnId));
 
+  const deleteEvent = (turnId: string, eventId: string, delta: number) => {
+    alert(`delete event ${eventId} with delta ${delta} from turn ${turnId}`);
+
+    // Trouver le playerId avant de supprimer l'event
+    setTurns((prev) => {
+      alert('set turns');
+      const turn = prev.find((t) => t.id === turnId);
+      if (!turn) return prev;
+      const ev = turn.events.find((e) => e.id === eventId);
+      if (!ev) return prev;
+      // Inverser le score
+      setPlayerStates((ps) => {
+        const current = ps[ev.playerId] ?? makePlayerGameState();
+        return { ...ps, [ev.playerId]: { ...current, score: current.score - delta } };
+      });
+      return prev.map((t) =>
+        t.id !== turnId ? t : { ...t, events: t.events.filter((e) => e.id !== eventId) },
+      );
+    });
+  };
+
   const changeScore = (playerId: string, delta: number) => {
     setPlayerStates((prev) => {
       const current = prev[playerId] ?? makePlayerGameState();
@@ -645,7 +681,7 @@ export default function RiftboundTrackerPage() {
         delta > 0
           ? `A gagné ${abs} point${abs > 1 ? "s" : ""}`
           : `A perdu ${abs} point${abs > 1 ? "s" : ""}`;
-      const event: TurnEvent = { id: crypto.randomUUID(), playerId, label };
+      const event: TurnEvent = { id: crypto.randomUUID(), playerId, label, delta };
       return [...prev.slice(0, -1), { ...last, events: [...last.events, event] }];
     });
   };
@@ -700,6 +736,7 @@ export default function RiftboundTrackerPage() {
       addTurn={addTurn}
       deleteTurn={deleteTurn}
       changeScore={changeScore}
+      deleteEvent={deleteEvent}
       cycleRune={cycleRune}
       addRune={addRune}
       onReset={handleReset}
