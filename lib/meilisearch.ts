@@ -29,4 +29,11 @@ export const indexes: { [gameSlug: string]: { name: string; keys: { set: string;
       collectorNumber: 'collectorNumber',
     },
   },
+  swu: {
+    name: 'swu-cards',
+    keys: {
+      set: 'setCode',
+      collectorNumber: 'collectorNumber',
+    },
+  }
 };
