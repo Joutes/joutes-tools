@@ -1,5 +1,7 @@
+
 'use server';
 
+import cards from '@/data/riftbound/cards-tcg-arena.json';
 import { auth } from '@/lib/auth';
 import meilisearch, {indexes} from "@/lib/meilisearch";
 import {BoosterCard} from "@/lib/types/booster";
@@ -7,69 +9,30 @@ import {headers} from "next/headers";
 import db from "@/lib/mongodb";
 import {ObjectId} from "bson";
 
-async function getCardsListFromOfficialWebSite(): Promise<{
-  id: string;
-  name: string;
-  subtitle: string;
-  setCode: string;
-  lang: string;
-  text: string;
-  power: number;
-  hp: number;
-  cost: number;
-  type: string;
-  traits: string[];
-  arenas: string[];
-  rarity: string;
-  image: string;
-  collectorNumber: string;
-}[]> {
-  const cards = [];
-
-  let page = 1;
-
-  while (true) {
-    console.info(`Fetching cards database page ${page}...`);
-    const cardsResult = await fetch(`https://admin.starwarsunlimited.com/api/card-list?locale=fr&pagination[page]=${page}&pagination[pageSize]=100`);
-
-    if (!cardsResult.ok) {
-      console.error('Failed to fetch cards database');
-      console.error(await cardsResult.text());
-      throw new Error('Failed to fetch cards database');
-    }
-
-    const json = await cardsResult.json();
-
-    cards.push(...json.data);
-
-    if (json.meta.pagination.page >= json.meta.pagination.pageCount || json.data.length === 0) {
-      break;
-    }
-
-    page++;
+const sets: {
+  [setName: string]: {
+    code: string;
+    maxCollectorNumber?: number
+    idPrefix?: string;
   }
-
-  return cards.map(cardRaw => ({
-    id: cardRaw.id,
-    name: cardRaw.attributes.title,
-    subtitle: cardRaw.attributes.subtitle,
-    setCode: cardRaw.attributes.expansion.data.attributes.code,
-    lang: cardRaw.attributes.locale,
-    text: cardRaw.attributes.text,
-    power: cardRaw.attributes.power,
-    hp: cardRaw.attributes.hp,
-    cost: cardRaw.attributes.cost,
-    type: cardRaw.attributes.type.data.attributes.value,
-    traits: cardRaw.attributes.traits.data.map((trait: any) => trait.attributes.name),
-    arenas: cardRaw.attributes.arenas.data.map((arena: any) => arena.attributes.name),
-    rarity: cardRaw.attributes.rarity.data.attributes.englishName,
-    image: cardRaw.attributes.artFront.data?.attributes.url,
-    collectorNumber: cardRaw.attributes.cardNumber,
-  }))
-}
+} = {
+  '01 - Origins': {
+    code: 'OGN',
+    maxCollectorNumber: 298,
+    idPrefix: 'origins-',
+  },
+  '00 - Proving Grounds': {
+    code: 'OGS',
+    maxCollectorNumber: 24,
+    idPrefix: 'ogs',
+  },
+  '02 - Spiritforged': {
+    code: 'SFD',
+  },
+};
 
 export async function importCards() {
-  console.log('Starting SWU card import...');
+  console.log('Starting Riftbound card import...');
 
   const session = await auth.api.getSession({
     headers: await headers(),
@@ -78,20 +41,55 @@ export async function importCards() {
     throw new Error('Unauthorized');
   }
 
-  const cards = await getCardsListFromOfficialWebSite();
+  const cardsArray: {
+    id: string;
+    face: {
+      front: {
+        name: string;
+        type: string;
+        cost: number;
+        image: string;
+      };
+    };
+    name: string;
+    type: string;
+    cost: number;
+    Set?: string[];
+  }[] = Object.values(cards);
 
-  console.log(`Importing ${cards.length} SWU cards...`);
+  console.log(`Importing ${cardsArray.length} Riftbound cards...`);
 
-  const cardsSanitized: BoosterCard[] = cards;
+  const cardsSanitized: BoosterCard[] = cardsArray.map((card) => {
+    const [cardSetCode, cardNumber] = card.id.split('-');
+    const cardSet = card.Set?.[0];
+
+    let cardId = "";
+    if (cardSet) {
+      const setInfo = sets[cardSet];
+      cardId = `${setInfo?.idPrefix ?? setInfo.code}${cardNumber}${setInfo?.maxCollectorNumber ?? ''}`;
+    } else {
+      cardId = card.id;
+    }
+
+    return {
+      ...card,
+      id: cardId,
+      image: card.face.front.image,
+
+      collectorNumber: cardNumber,
+      setCode: cardSetCode ?? '???',
+      lang: 'en',
+    };
+  });
 
   for (let i = 0; i < cardsSanitized.length; i += 5000) {
     const batch = cardsSanitized.slice(i, i + 5000);
     console.log(`Prepared batch ${i / 5000 + 1} (${batch.length} cards)`);
 
-    await meilisearch.index(indexes.swu.name).addDocuments(batch);
+    await meilisearch.index(indexes.riftbound.name).addDocuments(batch);
     await db.collection('cards').insertMany(batch.map(card => ({
       ...card,
-      gameId: new ObjectId('68f108675fdfb9c53ba3387d'),
+      gameId: new ObjectId('69009afea722eab4fa0e55c4'),
     })));
   }
 
