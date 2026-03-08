@@ -21,6 +21,24 @@ export async function createBooster(booster: Omit<Booster, 'id' | 'createdAt'>):
   };
 }
 
+export async function countBoosters({userId, gameId}: {
+  userId?: string;
+  gameId?: string;
+}): Promise<number> {
+  const query: {
+    gameId?: ObjectId;
+    userId?: ObjectId;
+  } = {};
+  if (gameId) {
+    query['gameId'] = new ObjectId(gameId);
+  }
+  if (userId) {
+    query['userId'] = new ObjectId(userId);
+  }
+
+  return await db.collection<BoosterDb>('boosters').countDocuments(query);
+}
+
 export async function getBoosters({userId, gameId, page = 0, limit = 20, offset = 0,}: {
   userId?: string;
   gameId?: string;
@@ -39,10 +57,12 @@ export async function getBoosters({userId, gameId, page = 0, limit = 20, offset 
     query['userId'] = new ObjectId(userId);
   }
 
+  const skip = page * limit + offset;
+
   const boosters = await db.collection<BoosterDb>('boosters').aggregate([
     {$match: query},
     {$sort: {createdAt: -1}},
-    {$skip: offset * page},
+    {$skip: skip},
     {$limit: limit},
     {
       $lookup: {

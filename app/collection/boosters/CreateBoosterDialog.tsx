@@ -21,7 +21,6 @@ import {
 } from "@/components/ui/select";
 import {Game} from "@/lib/types/game";
 import {createBoosterAction} from "./action";
-import {langToFlag} from "@/lib/langs";
 import useGame from "@/hooks/use-game";
 
 type Props = {
