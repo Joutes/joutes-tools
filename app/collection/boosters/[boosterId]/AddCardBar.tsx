@@ -36,6 +36,7 @@ export default function AddCardBar({boosterId, setCode, lang, gameSlug}: {
       setCode: item.setCode,
       collectorNumber: item.collectorNumber,
       name: item.name,
+      subtitle: item.subtitle,
       image: item.image,
     }).then(() => {
       setSearchQuery("");
@@ -66,7 +67,8 @@ export default function AddCardBar({boosterId, setCode, lang, gameSlug}: {
                 <div className="flex flex-row items-center gap-4">
                   <img src={item.image} alt={item.name} className="w-24" />
                   <div>
-                    <div>{item.name}</div>
+                    <div className="font-medium">{item.name}</div>
+                    {item.subtitle && <div className="font-light">{item.subtitle}</div>}
                     <div className="text-sm text-muted-foreground">{item.setCode} #{item.collectorNumber}</div>
                   </div>
                 </div>

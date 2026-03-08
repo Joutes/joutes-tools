@@ -1,7 +1,7 @@
 import {MeiliSearch} from "meilisearch";
 
 (async () => {
-  const indexName = 'drakerion-cards';
+  const indexName = 'swu-cards';
   const meiliEndpoint = 'http://localhost:7700';
   const apiKey = undefined;
   const client = new MeiliSearch({
@@ -11,8 +11,8 @@ import {MeiliSearch} from "meilisearch";
 
   // Delete the index if it already exists
   try {
-    await client.index(indexName).delete();
-    console.info('Existing index deleted');
+    //await client.index(indexName).delete();
+    //console.info('Existing index deleted');
   } catch (e) {
     console.info('Index does not exist, no need to delete');
   }
@@ -42,9 +42,10 @@ import {MeiliSearch} from "meilisearch";
     body: JSON.stringify({
       "searchableAttributes": [
         "name",
+        "subtitle",
         "text",
       ],
-      "filterableAttributes": ["name", "lang", "setCode", "collectorNumber"],
+      "filterableAttributes": ["name", "subtitle", "lang", "setCode", "collectorNumber"],
       "sortableAttributes": ["setCode", "collectorNumber"],
     }),
   }).then(async (response) => {

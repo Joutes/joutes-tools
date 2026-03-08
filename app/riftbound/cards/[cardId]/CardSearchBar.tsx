@@ -92,6 +92,7 @@ export default function CardSearchBar() {
               />
               <div className="flex-1">
                 <div className="font-medium">{card.name}</div>
+                {card.subtitle && <div className="font-light">{card.subtitle}</div>}
                 <div className="text-xs text-muted-foreground">
                   {card.setCode} #{card.collectorNumber}
                 </div>

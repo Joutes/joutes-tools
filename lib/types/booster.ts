@@ -7,6 +7,7 @@ export type BoosterCard = {
   cardId?: string;
   boosterId?: string;
   name: string;
+  subtitle?: string;
   setCode: string;
   collectorNumber: string;
   foil?: boolean;
@@ -20,6 +21,7 @@ export type BoosterCardDb = {
   userId: ObjectId;
   cardId?: string;
   name: string;
+  subtitle?: string;
   setCode: string;
   collectorNumber: string;
   foil?: boolean;
