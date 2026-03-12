@@ -54,7 +54,7 @@ export async function importCards() {
     const cardsRaw = responseRaw['hydra:member'];
 
     const cards: BoosterCard[] = cardsRaw.map((cardRaw: any): BoosterCard => ({
-      id: cardRaw.reference,
+      id: cardRaw.id,
       image: cardRaw.imagePath,
       collectorNumber: cardRaw.collectorNumberFormatted,
       setCode: setMapByRefence[cardRaw.cardSet.reference]?.code ?? cardRaw.cardSet.reference,
