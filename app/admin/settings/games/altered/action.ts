@@ -43,7 +43,7 @@ export async function importCards() {
   let page = 1;
   while (true) {
     console.debug(`Fetching page ${page}...`);
-    const cardsResult = await fetch(`https://api.altered.gg/cards?page=${page}&locale=fr-fr`);
+    const cardsResult = await fetch(`https://api.altered.gg/cards?page=${page}&locale=fr-fr&itemsPerPage=108`);
 
     if (!cardsResult.ok) {
       console.error('Failed to fetch cards database');
