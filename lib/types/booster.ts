@@ -4,6 +4,7 @@ import {ObjectId} from "bson";
 
 export type BoosterCard = {
   id: string;
+  lang?: string;
   cardId?: string;
   boosterId?: string;
   name: string;
@@ -20,6 +21,7 @@ export type BoosterCardDb = {
   boosterId: ObjectId;
   userId: ObjectId;
   cardId?: string;
+  lang?: string;
   name: string;
   subtitle?: string;
   setCode: string;

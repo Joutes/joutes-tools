@@ -40,6 +40,8 @@ export async function importCards() {
     return acc;
   }, {});
 
+  await db.collection<BoosterCard>('cards').deleteMany({ gameId: new ObjectId('690e6100c9c4f79df490911d') });
+
   let page = 1;
   while (true) {
     console.debug(`Fetching page ${page}...`);
@@ -55,6 +57,7 @@ export async function importCards() {
 
     const cards: BoosterCard[] = cardsRaw.map((cardRaw: any): BoosterCard => ({
       id: cardRaw.id,
+      lang: 'fr',
       image: cardRaw.imagePath,
       collectorNumber: cardRaw.collectorNumberFormatted,
       setCode: setMapByRefence[cardRaw.cardSet.reference]?.code ?? cardRaw.cardSet.reference,
