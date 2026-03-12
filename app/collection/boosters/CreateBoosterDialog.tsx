@@ -59,6 +59,13 @@ const BOOSTER_TYPES: Record<string, {value: string; label: string}[]> = {
     {value: "SET", label: "Classique"},
     {value: "OTHER", label: "Autre"},
   ],
+  altered: [
+    {value: "SET", label: "Set"},
+    {value: "COLLECTOR", label: "Collector"},
+    {value: "AP", label: "Avant-première"},
+    {value: "PROMO", label: "Promotion"},
+    {value: "OTHER", label: "Autre"},
+  ]
 };
 
 const LANGUAGES = [
