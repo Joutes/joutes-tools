@@ -35,5 +35,12 @@ export const indexes: { [gameSlug: string]: { name: string; keys: { set: string;
       set: 'setCode',
       collectorNumber: 'collectorNumber',
     },
+  },
+  altered: {
+    name: 'altered-cards',
+    keys: {
+      set: 'setCode',
+      collectorNumber: 'collectorNumber',
+    },
   }
 };

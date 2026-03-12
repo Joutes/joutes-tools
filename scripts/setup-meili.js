@@ -1,7 +1,7 @@
 import {MeiliSearch} from "meilisearch";
 
 (async () => {
-  const indexName = 'swu-cards';
+  const indexName = 'altered-cards';
   const meiliEndpoint = 'http://localhost:7700';
   const apiKey = undefined;
   const client = new MeiliSearch({
