@@ -90,7 +90,7 @@ export default async function RiftboundCardDetailPage({
                 {erratas.map((errata) => (
                   <div
                     key={errata.id}
-                    className="border rounded-lg p-4 bg-card"
+                    className={`border rounded-lg p-4 bg-card ${errata.deprecatedAt ? "opacity-50" : ""}`}
                   >
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
@@ -124,6 +124,11 @@ export default async function RiftboundCardDetailPage({
                         </div>
                       )}
                     </div>
+                    {errata.deprecatedAt && (
+                      <span className="inline-block mb-2 text-xs font-semibold px-2 py-0.5 rounded bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400">
+                        Déprécié
+                      </span>
+                    )}
                     <div className="prose prose-sm dark:prose-invert max-w-none ">
                       <ReactMarkdown children={errata.details} />
                     </div>
@@ -137,6 +142,18 @@ export default async function RiftboundCardDetailPage({
                         >
                           Source →
                         </a>
+                      </div>
+                    )}
+                    {errata.deprecatedAt && (
+                      <div className="mt-2 pt-2 border-t">
+                        <span className="text-xs text-muted-foreground italic">
+                          Déprécié le{" "}
+                          {new Date(errata.deprecatedAt).toLocaleDateString("fr-FR", {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          })}
+                        </span>
                       </div>
                     )}
                   </div>

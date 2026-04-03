@@ -13,6 +13,7 @@ export type Errata = {
   errataDate: Date;
   createdBy: string;
   createdAt: Date;
+  deprecatedAt?: Date;
 };
 
 export type ErrataDb = {
@@ -23,4 +24,5 @@ export type ErrataDb = {
   errataDate: Date;
   createdBy: ObjectId;
   createdAt: Date;
+  deprecatedAt?: Date;
 };

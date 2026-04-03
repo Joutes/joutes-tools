@@ -45,22 +45,38 @@ export async function updateErrata(
     details: string;
     source?: string;
     errataDate: Date;
+    deprecatedAt?: Date | null;
   },
   cardId?: string
 ) {
   await requireAdmin();
 
-  await db.collection<ErrataDb>("erratas").updateOne(
-    { _id: new ObjectId(errataId) },
-    {
-      $set: {
-        type: data.type,
-        details: data.details,
-        source: data.source,
-        errataDate: data.errataDate,
-      },
+  const updateFields: Partial<ErrataDb> = {
+    type: data.type,
+    details: data.details,
+    source: data.source,
+    errataDate: data.errataDate,
+  };
+
+  if (data.deprecatedAt !== undefined) {
+    if (data.deprecatedAt === null) {
+      await db.collection<ErrataDb>("erratas").updateOne(
+        { _id: new ObjectId(errataId) },
+        { $set: updateFields, $unset: { deprecatedAt: "" } }
+      );
+    } else {
+      updateFields.deprecatedAt = data.deprecatedAt;
+      await db.collection<ErrataDb>("erratas").updateOne(
+        { _id: new ObjectId(errataId) },
+        { $set: updateFields }
+      );
     }
-  );
+  } else {
+    await db.collection<ErrataDb>("erratas").updateOne(
+      { _id: new ObjectId(errataId) },
+      { $set: updateFields }
+    );
+  }
 
   revalidatePath("/riftbound/erratas");
   if (cardId) {

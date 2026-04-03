@@ -122,7 +122,7 @@ export default function ErratasClientView({
           {filteredAndSortedErratas.map((errata) => (
             <div
               key={errata.id}
-              className="border rounded-lg p-6 bg-card shadow-sm"
+              className={`border rounded-lg p-6 bg-card shadow-sm ${errata.deprecatedAt ? "opacity-50" : ""}`}
             >
               <div className="flex gap-4">
                 {errata.card && (
@@ -183,6 +183,11 @@ export default function ErratasClientView({
                       </div>
                     )}
                   </div>
+                  {errata.deprecatedAt && (
+                    <span className="inline-block mb-2 text-xs font-semibold px-2 py-0.5 rounded bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400">
+                      Déprécié
+                    </span>
+                  )}
                   <div className="prose prose-sm dark:prose-invert max-w-none">
                     <ReactMarkdown>{errata.details}</ReactMarkdown>
                   </div>
@@ -196,6 +201,18 @@ export default function ErratasClientView({
                       >
                         Source →
                       </a>
+                    </div>
+                  )}
+                  {errata.deprecatedAt && (
+                    <div className="mt-2 pt-2 border-t">
+                      <span className="text-xs text-muted-foreground italic">
+                        Déprécié le{" "}
+                        {new Date(errata.deprecatedAt).toLocaleDateString("fr-FR", {
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })}
+                      </span>
                     </div>
                   )}
                 </div>

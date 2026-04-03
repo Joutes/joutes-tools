@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/select";
 import { updateErrata } from "@/app/riftbound/erratas/action";
 import { Errata, ErrataType } from "@/lib/types/errata";
-import { Pencil } from "lucide-react";
+import { Pencil, X } from "lucide-react";
 
 export default function EditErrataDialog({
   errata,
@@ -36,6 +36,9 @@ export default function EditErrataDialog({
   const [source, setSource] = useState(errata.source || "");
   const [errataDate, setErrataDate] = useState(
     errata.errataDate ? new Date(errata.errataDate).toISOString().split("T")[0] : ""
+  );
+  const [deprecatedAt, setDeprecatedAt] = useState(
+    errata.deprecatedAt ? new Date(errata.deprecatedAt).toISOString().split("T")[0] : ""
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -52,6 +55,7 @@ export default function EditErrataDialog({
           details,
           source: source.trim() || undefined,
           errataDate: new Date(errataDate),
+          deprecatedAt: deprecatedAt ? new Date(deprecatedAt) : null,
         },
         cardId
       );
@@ -138,6 +142,32 @@ export default function EditErrataDialog({
                 value={source}
                 onChange={(e) => setSource(e.target.value)}
               />
+            </div>
+
+            <div className="grid gap-2">
+              <label htmlFor="deprecatedAt" className="text-sm font-medium">
+                Date de dépréciation (optionnelle)
+              </label>
+              <div className="flex gap-2">
+                <Input
+                  id="deprecatedAt"
+                  type="date"
+                  value={deprecatedAt}
+                  onChange={(e) => setDeprecatedAt(e.target.value)}
+                  className="flex-1"
+                />
+                {deprecatedAt && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setDeprecatedAt("")}
+                    title="Supprimer la dépréciation"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
           <DialogFooter>

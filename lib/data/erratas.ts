@@ -19,6 +19,7 @@ export async function getErratasByCardId(cardId: string): Promise<Errata[]> {
     errataDate: errata.errataDate,
     createdBy: errata.createdBy.toString(),
     createdAt: errata.createdAt,
+    deprecatedAt: errata.deprecatedAt,
   }));
 }
 
@@ -69,5 +70,6 @@ export async function getAllErratas(): Promise<Errata[]> {
     errataDate: errata.errataDate,
     createdBy: errata.createdBy.toString(),
     createdAt: errata.createdAt,
+    deprecatedAt: errata.deprecatedAt,
   }));
 }
