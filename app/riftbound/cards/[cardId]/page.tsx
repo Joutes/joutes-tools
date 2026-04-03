@@ -3,10 +3,12 @@ import { isAdmin } from "@/lib/auth-utils";
 import meilisearch, { indexes } from "@/lib/meilisearch";
 import { BoosterCard } from "@/lib/types/booster";
 import AddErrataButton from "./AddErrataButton";
+import BanCardButton from "./BanCardButton";
 import ReactMarkdown from "react-markdown";
 import DeleteErrataButton from "@/components/DeleteErrataButton";
 import EditErrataDialog from "@/components/EditErrataDialog";
 import CardSearchBar from "./CardSearchBar";
+import db from "@/lib/mongodb";
 
 export default async function RiftboundCardDetailPage({
   params,
@@ -15,9 +17,9 @@ export default async function RiftboundCardDetailPage({
 }) {
   const { cardId } = await params;
 
-  // Récupérer les informations de la carte depuis Meilisearch
-  const index = meilisearch.index<BoosterCard>(indexes.riftbound.name);
-  const card = await index.getDocument(cardId);
+  // Récupérer les informations de la carte depuis Monogdb
+  const card = await db.collection<BoosterCard>("cards").findOne({ id: cardId });
+  console.log("Carte récupérée :", card);
 
   if (!card) {
     return (
@@ -53,10 +55,22 @@ export default async function RiftboundCardDetailPage({
 
         {/* Détails de la carte */}
         <div>
-          <h1 className="text-3xl font-bold mb-4">{card.name}</h1>
-          <p className="text-muted-foreground mb-6">
-            {card.setCode} #{card.collectorNumber}
-          </p>
+          <div className="flex items-center gap-3 mb-4 flex-wrap">
+            <h1 className="text-3xl font-bold">{card.name}</h1>
+            {card.banned && (
+              <span className="bg-red-600 text-white text-sm font-semibold px-2 py-1 rounded">
+                Banned
+              </span>
+            )}
+          </div>
+          <div className="flex items-center justify-between mb-6">
+            <p className="text-muted-foreground">
+              {card.setCode} #{card.collectorNumber}
+            </p>
+            {userIsAdmin && (
+              <BanCardButton cardId={cardId} banned={card.banned} />
+            )}
+          </div>
 
           {/* Section Erratas/Clarifications/Rulings */}
           <div className="mb-6">
