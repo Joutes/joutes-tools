@@ -1,13 +1,13 @@
 import { getAllErratas } from "@/lib/data/erratas";
 import { isAdmin } from "@/lib/auth-utils";
-import meilisearch, { indexes } from "@/lib/meilisearch";
-import { BoosterCard } from "@/lib/types/booster";
 import AddErrataDialog from "./AddErrataDialog";
 import ErratasClientView from "./ErratasClientView";
 
 export default async function RiftboundErratasPage() {
   const erratas = await getAllErratas();
   const userIsAdmin = await isAdmin();
+
+  console.log("Erratas récupérées :", erratas[0], erratas[1]);
 
   // Récupérer les informations des cartes pour chaque errata
 

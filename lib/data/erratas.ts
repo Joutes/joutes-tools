@@ -34,6 +34,9 @@ export async function getAllErratas(): Promise<Errata[]> {
           as: 'card',
           pipeline: [
             {
+              $limit: 1
+            },
+            {
               $project: {
                 _id: 0,
                 gameId: 0,
