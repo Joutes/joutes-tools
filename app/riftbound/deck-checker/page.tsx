@@ -1,6 +1,6 @@
 'use client';
 
-import {useState} from "react";
+import {useEffect, useState} from "react";
 import ReactMarkdown from "react-markdown";
 import {Button} from "@/components/ui/button";
 import {Label} from "@/components/ui/label";
@@ -12,8 +12,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {validateDeckList, type DeckListCard, type DeckList} from "./action";
+import {validateDeckList, type DeckListCard, type DeckList, analyzeDeckListImage} from "./action";
 import {type ErrataType} from "@/lib/types/errata";
+import {useSession} from "@/lib/auth-client";
+import {hasPermission} from "@/lib/permissions";
 
 const ConstructionRules = {
   legends: {
@@ -277,10 +279,13 @@ function DeckSection({title, cards, compact, rules}: {title: string; cards: Deck
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function RiftboundDeckCheckerPage() {
+  const session = useSession();
   const [rawDeckList, setRawDeckList] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [deckList, setDeckList] = useState<DeckList | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [canUseImageLoader, setCanUseImageLoader] = useState<boolean | null>(null);
 
   async function importDeckList() {
     setIsLoading(true);
@@ -317,6 +322,46 @@ export default function RiftboundDeckCheckerPage() {
     }
   }
 
+  async function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        try {
+          const base64 = reader.result as string;
+          const verifyResult = await analyzeDeckListImage(base64);
+          setRawDeckList(verifyResult.raw);
+          setDeckList(verifyResult.deckList);
+
+          setIsLoading(false);
+        } catch (err) {
+          setError(
+            err instanceof Error ? err.message : "Erreur lors de la vérification"
+          );
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      reader.onerror = () => {
+        setError("Erreur lors de la lecture de l'image");
+        setIsLoading(false);
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  useEffect(() => {
+    if (!session?.data) {
+      return;
+    }
+
+    hasPermission('deck_checker:ai').then(can => {
+      setCanUseImageLoader(can);
+    });
+  }, [session]);
+
   const allCards = deckList ? [...deckList.legends, ...deckList.champions, ...deckList.maindeck, ...deckList.battlefields, ...deckList.runes, ...deckList.sideboard] : [];
   const unrecognized = allCards.filter(c => !c.recognized);
 
@@ -336,11 +381,29 @@ export default function RiftboundDeckCheckerPage() {
             placeholder={"Collez votre liste de deck ou un lien https://piltoverarchive.com/decks/view/...\n\nLegend:\n1 Azir, Emperor of the Sands\n\nChampion:\n1 Azir, Sovereign\n\nMainDeck:\n3 Discipline\n..."}
             className="w-full h-60 p-3 border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
+          {canUseImageLoader &&
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleImageChange}
+              className="hidden"
+              id="deck-image"
+            />
+          }
         </div>
 
-        <Button onClick={importDeckList} disabled={isLoading || !rawDeckList.trim()}>
-          {isLoading ? 'Validation en cours\u2026' : 'Valider'}
-        </Button>
+        <div className="flex flex-row space-x-4">
+          <Button onClick={importDeckList} disabled={isLoading || !rawDeckList.trim()}>
+            {isLoading ? 'Validation en cours\u2026' : 'Valider'}
+          </Button>
+          {canUseImageLoader && (
+            <Button asChild variant="outline">
+              <label htmlFor="deck-image" className="cursor-pointer">
+                {isLoading ? 'Validation en cours\u2026' : 'Charger une photo'}
+              </label>
+            </Button>
+          )}
+        </div>
         {error && <p className="mt-2 text-sm text-red-500">{error}</p>}
       </div>
 

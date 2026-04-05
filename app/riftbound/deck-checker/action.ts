@@ -2,6 +2,10 @@
 
 import db from '@/lib/mongodb';
 import {Errata} from "@/lib/types/errata";
+import {auth} from "@/lib/auth";
+import {headers} from "next/headers";
+import {generateText} from "ai";
+import {openai} from "@ai-sdk/openai";
 
 export type DeckListCard = {
   name: string;
@@ -75,8 +79,9 @@ export async function validateDeckList(decklist: DeckList): Promise<DeckList> {
         .toArray()
       : [];
 
+
   // Map by lowercase card name for case-insensitive O(1) lookup
-  const cardMap = new Map(cardsFromDb.map((c) => [c.name.toLowerCase(), c]));
+  const cardMap = new Map(cardsFromDb.sort((a, b) => a.erratas.length - b.erratas.length).map((c) => [c.name.toLowerCase(), c]));
 
   // Rebuild DeckList with enriched data
   const result: DeckList = {
@@ -104,3 +109,72 @@ export async function validateDeckList(decklist: DeckList): Promise<DeckList> {
   return result;
 }
 
+function parseCardList(text: string): string[] {
+  return (
+    text
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0)
+      // Retirer les numéros de ligne ou puces
+      .map((line) => line.replace(/^[\d\-•*]+[\.\):\s]*/, "").trim())
+      .filter((line) => line.length > 0)
+  );
+}
+
+function normalizeCardName(cardName: string): string {
+  // Retirer les quantités (2x, x2, etc.)
+  let normalized = cardName.replace(/^\d+x\s*/i, "").replace(/\s*x\d+$/i, "");
+  // Retirer la ponctuation et mettre en minuscule
+  normalized = normalized
+    .toLowerCase()
+    .replace(/[^\w\s]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  return normalized;
+}
+
+export async function analyzeDeckListImage(imageBase64: string): Promise<{ raw: string; deckList: DeckList }> {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+  if (session?.user.email !== process.env.ADMIN_EMAIL) {
+    throw new Error('Unauthorized');
+  }
+
+  // Extraire les cartes de la photo avec OpenAI Vision
+  const { text } = await generateText({
+    model: openai("gpt-4o"),
+    messages: [
+      {
+        role: "user",
+        content: [
+          {
+            type: "text",
+            text: "Extract all card names from this Star Wars Unlimited deck photo. Return ONLY a list of card names, one per line, without any additional text, formatting, or numbering. If the card is in the photo multiple times, list it multiple times, one per line.",
+          },
+          {
+            type: "image",
+            image: imageBase64,
+          },
+        ],
+      },
+    ],
+  });
+
+  // Parser les listes
+  const extractedCards = parseCardList(text);
+
+  console.log(extractedCards);
+
+  return {
+    raw: text,
+    deckList: {
+      champions: [],
+      legends: [],
+      runes: [],
+      battlefields: [],
+      maindeck: [],
+      sideboard: [],
+    },
+  };
+}
