@@ -97,7 +97,7 @@ function CardTile({card}: {card: DeckListCard}) {
 }
 
 // ── Section grid ──────────────────────────────────────────────────────────────
-function DeckSection({title, cards}: {title: string; cards: DeckListCard[]}) {
+function DeckSection({title, cards, compact}: {title: string; cards: DeckListCard[]; compact?: boolean}) {
   if (cards.length === 0) return null;
   const total = cards.reduce((sum, c) => sum + c.quantity, 0);
   return (
@@ -106,7 +106,9 @@ function DeckSection({title, cards}: {title: string; cards: DeckListCard[]}) {
         <h2 className="text-lg font-semibold">{title}</h2>
         <span className="text-sm text-muted-foreground">({total} carte{total > 1 ? 's' : ''})</span>
       </div>
-      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-2">
+      <div className={compact
+        ? "grid grid-cols-2 gap-2"
+        : "grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-2"}>
         {cards.map((card, idx) => <CardTile key={`${card.name}-${idx}`} card={card} />)}
       </div>
     </div>
@@ -183,11 +185,13 @@ export default function RiftboundDeckCheckerPage() {
       </div>
 
       {deckList && (
-        <div className="space-y-8">
-          <DeckSection title="Légende" cards={deckList.legends} />
-          <DeckSection title="Champion" cards={deckList.champions} />
-          <DeckSection title="Champs de bataille" cards={deckList.battlefields} />
-          <DeckSection title="Runes" cards={deckList.runes} />
+          <div className="space-y-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <DeckSection title="Légende" cards={deckList.legends} compact />
+            <DeckSection title="Champion" cards={deckList.champions} compact />
+            <DeckSection title="Champs de bataille" cards={deckList.battlefields} compact />
+            <DeckSection title="Runes" cards={deckList.runes} compact />
+          </div>
           <DeckSection title="Main Deck" cards={deckList.maindeck} />
           <DeckSection title="Sideboard" cards={deckList.sideboard} />
 
