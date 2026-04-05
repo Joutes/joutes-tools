@@ -21,6 +21,11 @@ const gamesMenus: { [slug: string]: {
             url: "/riftbound/erratas",
             icon: LibraryIcon,
         },
+        {
+            title: "Deck Checker",
+            url: "/riftbound/deck-checker",
+            icon: ScanIcon,
+        },
     ],
     'swu': [
         {
