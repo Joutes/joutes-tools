@@ -84,7 +84,7 @@ export async function validateDeckList(decklist: DeckList): Promise<DeckList> {
                 {
                   $addFields: {
                     id: {
-                      $toString: '_id'
+                      $toString: '$_id'
                     }
                   },
                 },
@@ -129,9 +129,7 @@ export async function validateDeckList(decklist: DeckList): Promise<DeckList> {
       image: card.image,
       banned: cardDb?.banned ?? false,
       recognized: card.recognized,
-      erratas: cardDb?.erratas.map((errata: Errata) => ({
-        ...errata,
-      })) ?? [],
+      erratas: cardDb?.erratas ?? [],
     });
   }
 

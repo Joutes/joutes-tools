@@ -1,10 +1,20 @@
 'use client';
 
 import {useState} from "react";
+import ReactMarkdown from "react-markdown";
 import {Button} from "@/components/ui/button";
 import {Label} from "@/components/ui/label";
 import {Textarea} from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import {validateDeckList, type DeckListCard, type DeckList} from "./action";
+import {type ErrataType} from "@/lib/types/errata";
+
 
 // ── Parse a pasted deck list text into the DeckList structure ─────────────────
 function parseDeckList(text: string): DeckList {
@@ -66,10 +76,27 @@ function parseDeckList(text: string): DeckList {
   return result;
 }
 
+// ── Errata type badge ─────────────────────────────────────────────────────────
+const ERRATA_LABEL: Record<ErrataType, string> = {
+  errata: "Errata",
+  clarification: "Clarification",
+  ruling: "Ruling",
+};
+const ERRATA_CLASS: Record<ErrataType, string> = {
+  errata: "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300",
+  clarification: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300",
+  ruling: "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300",
+};
+
 // ── Card tile ─────────────────────────────────────────────────────────────────
 function CardTile({card}: {card: DeckListCard}) {
-  return (
-    <div className={`relative rounded-lg overflow-hidden shadow-md bg-gray-800 group${card.banned ? ' ring-2 ring-red-500' : ''}`} style={{aspectRatio: '2.5 / 3.5'}}>
+  const hasErratas = (card.erratas?.length ?? 0) > 0;
+
+  const trigger = (
+    <div
+      className={`relative rounded-lg overflow-hidden shadow-md bg-gray-800 group cursor-pointer${card.banned ? ' ring-2 ring-red-500' : ''}`}
+      style={{aspectRatio: '2.5 / 3.5'}}
+    >
       {card.image ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={card.image} alt={card.name} className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105" />
@@ -87,21 +114,97 @@ function CardTile({card}: {card: DeckListCard}) {
           BANNED
         </div>
       ) : (
-        <>
-          {card.erratas && card.erratas.length > 0 && (
-            <div className="absolute top-1.5 right-1.5 bg-yellow-600 text-white text-[10px] font-bold rounded px-1.5 py-0.5 leading-none uppercase tracking-widest">
-              NOTES
-            </div>
-          )}
-        </>
+        hasErratas && (
+          <div className="absolute top-1.5 right-1.5 bg-yellow-600 text-white text-[10px] font-bold rounded px-1.5 py-0.5 leading-none uppercase tracking-widest">
+            NOTES
+          </div>
+        )
       )}
-
       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent pt-4 pb-1.5 px-1.5">
         <p className={`text-xs font-medium truncate ${!card.recognized ? 'text-red-400' : 'text-white'}`}>
           {card.name}
         </p>
       </div>
     </div>
+  );
+
+  // Cards without info don't need a modal
+  if (!card.recognized && !hasErratas) return trigger;
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      <DialogContent className="min-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 flex-wrap">
+            {card.name}
+            {card.banned && (
+              <span className="text-[11px] font-bold bg-red-600 text-white rounded px-2 py-0.5 uppercase tracking-widest">
+                BANNED
+              </span>
+            )}
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="flex gap-6 mt-1">
+          {/* Card image */}
+          {card.image && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={card.image}
+              alt={card.name}
+              className="w-40 shrink-0 rounded-lg shadow-md self-start"
+            />
+          )}
+
+          {/* Details */}
+          <div className="flex-1 min-w-0">
+            {card.banned && (
+              <p className="mb-4 text-sm text-red-500 font-medium">
+                Cette carte est bannie et ne peut pas être jouée en tournoi.
+              </p>
+            )}
+
+            {hasErratas ? (
+              <div className="space-y-4">
+                <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                  Erratas &amp; Clarifications ({card.erratas!.length})
+                </h3>
+                {card.erratas!.map((errata, i) => (
+                  <div key={errata.id ?? i} className={`rounded-lg border p-3 ${errata.deprecatedAt ? 'opacity-50' : ''}`}>
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded ${ERRATA_CLASS[errata.type]}`}>
+                        {ERRATA_LABEL[errata.type]}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(errata.errataDate).toLocaleDateString('fr-FR', {year: 'numeric', month: 'long', day: 'numeric'})}
+                      </span>
+                      {errata.deprecatedAt && (
+                        <span className="text-xs font-semibold px-2 py-0.5 rounded bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-400">
+                          Déprécié
+                        </span>
+                      )}
+                    </div>
+                    <div className="prose prose-sm dark:prose-invert max-w-none">
+                      <ReactMarkdown>{errata.details}</ReactMarkdown>
+                    </div>
+                    {errata.source && (
+                      <div className="mt-2 pt-2 border-t">
+                        <a href={errata.source} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline">
+                          Source →
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">Aucun errata ou clarification pour cette carte.</p>
+            )}
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
