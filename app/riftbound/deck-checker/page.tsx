@@ -16,6 +16,7 @@ import {validateDeckList, type DeckListCard, type DeckList, analyzeDeckListImage
 import {type ErrataType} from "@/lib/types/errata";
 import {useSession} from "@/lib/auth-client";
 import {hasPermission} from "@/lib/permissions";
+import {parseDeckList} from "@/app/riftbound/deck-checker/utils";
 
 const ConstructionRules = {
   legends: {
@@ -40,65 +41,6 @@ const ConstructionRules = {
   },
 }
 
-// ── Parse a pasted deck list text into the DeckList structure ─────────────────
-function parseDeckList(text: string): DeckList {
-  const result: DeckList = {
-    champions: [],
-    legends: [],
-    maindeck: [],
-    sideboard: [],
-    battlefields: [],
-    runes: [],
-  };
-
-  const map: Record<string, keyof DeckList> = {
-    legend: 'legends',
-    legends: 'legends',
-    'légende': 'legends',
-    'légendes': 'legends',
-    champion: 'champions',
-    champions: 'champions',
-    maindeck: 'maindeck',
-    "main deck": 'maindeck',
-    deck: 'maindeck',
-    main: 'maindeck',
-    'main-deck': 'maindeck',
-    sideboard: 'sideboard',
-    side: 'sideboard',
-    battlefield: 'battlefields',
-    battlefields: 'battlefields',
-    runes: 'runes',
-  };
-
-  let current: keyof DeckList = 'maindeck';
-
-  const lines = text.split(/\r?\n/);
-  for (const raw of lines) {
-    const line = raw.trim();
-    if (!line) continue;
-
-    const headerMatch = line.match(/^([A-Za-z \-]+):?$/);
-    if (headerMatch) {
-      const key = headerMatch[1].trim().toLowerCase();
-      if (map[key]) { current = map[key]; continue; }
-    }
-
-    const qtyMatch = line.match(/^\s*(\d+)\s*x?\s+(.+)$/i);
-    let qty = 1;
-    let name = line;
-    if (qtyMatch) {
-      qty = parseInt(qtyMatch[1], 10);
-      name = qtyMatch[2].trim();
-    } else {
-      const bulletMatch = line.replace(/^[-\u2022]\s*/, '');
-      if (bulletMatch !== line) name = bulletMatch.trim();
-    }
-
-    result[current].push({name, quantity: qty});
-  }
-
-  return result;
-}
 
 // ── Errata type badge ─────────────────────────────────────────────────────────
 const ERRATA_LABEL: Record<ErrataType, string> = {
@@ -325,6 +267,7 @@ export default function RiftboundDeckCheckerPage() {
   async function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (file) {
+      setIsLoading(true);
       setImageFile(file);
 
       const reader = new FileReader();
@@ -333,7 +276,7 @@ export default function RiftboundDeckCheckerPage() {
           const base64 = reader.result as string;
           const verifyResult = await analyzeDeckListImage(base64);
           setRawDeckList(verifyResult.raw);
-          setDeckList(verifyResult.deckList);
+          setDeckList(await validateDeckList(verifyResult.deckList))
 
           setIsLoading(false);
         } catch (err) {

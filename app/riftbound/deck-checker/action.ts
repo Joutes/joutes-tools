@@ -6,6 +6,7 @@ import {auth} from "@/lib/auth";
 import {headers} from "next/headers";
 import {generateText} from "ai";
 import {openai} from "@ai-sdk/openai";
+import {parseDeckList} from "@/app/riftbound/deck-checker/utils";
 
 export type DeckListCard = {
   name: string;
@@ -109,18 +110,6 @@ export async function validateDeckList(decklist: DeckList): Promise<DeckList> {
   return result;
 }
 
-function parseCardList(text: string): string[] {
-  return (
-    text
-      .split("\n")
-      .map((line) => line.trim())
-      .filter((line) => line.length > 0)
-      // Retirer les numéros de ligne ou puces
-      .map((line) => line.replace(/^[\d\-•*]+[\.\):\s]*/, "").trim())
-      .filter((line) => line.length > 0)
-  );
-}
-
 function normalizeCardName(cardName: string): string {
   // Retirer les quantités (2x, x2, etc.)
   let normalized = cardName.replace(/^\d+x\s*/i, "").replace(/\s*x\d+$/i, "");
@@ -150,7 +139,7 @@ export async function analyzeDeckListImage(imageBase64: string): Promise<{ raw: 
         content: [
           {
             type: "text",
-            text: "Extract all card names from this Star Wars Unlimited deck photo. Return ONLY a list of card names, one per line, without any additional text, formatting, or numbering. If the card is in the photo multiple times, list it multiple times, one per line.",
+            text: "Extract all card names from this Riftbound deck photo. Return ONLY a list of card names, one per line, without any additional text, formatting, or numbering. If the card is in the photo multiple times, list it multiple times, one per line. If the image has a quantity next to the card name, prefix the card name with this quantity.\nGroup cards by deck section if indicated, writing the name of the section above the cards of this section. Available deck sections are: Legends, Champions, Runes, Maindeck, Sideboard.\nNote : cards with the indication 'Choosen Champion' must be put in the Champions section.'",
           },
           {
             type: "image",
@@ -160,21 +149,13 @@ export async function analyzeDeckListImage(imageBase64: string): Promise<{ raw: 
       },
     ],
   });
+  const trimmed = text.replaceAll('```', '').trim();
 
   // Parser les listes
-  const extractedCards = parseCardList(text);
-
-  console.log(extractedCards);
+  const deckList = parseDeckList(trimmed);
 
   return {
-    raw: text,
-    deckList: {
-      champions: [],
-      legends: [],
-      runes: [],
-      battlefields: [],
-      maindeck: [],
-      sideboard: [],
-    },
+    raw: trimmed,
+    deckList: deckList,
   };
 }
