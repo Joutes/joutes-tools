@@ -45,7 +45,7 @@ import {MeiliSearch} from "meilisearch";
         "subtitle",
         "text",
       ],
-      "filterableAttributes": ["name", "subtitle", "lang", "setCode", "collectorNumber"],
+      "filterableAttributes": ["name", "subtitle", "lang", "setCode", "collectorNumber", "type"],
       "sortableAttributes": ["setCode", "collectorNumber"],
     }),
   }).then(async (response) => {

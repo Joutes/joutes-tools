@@ -2,7 +2,7 @@
 
 import useGame from "@/hooks/use-game";
 import { SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "./ui/sidebar";
-import { LibraryIcon, ScanIcon, SearchIcon, WatchIcon } from "lucide-react";
+import {ChartLineIcon, LibraryIcon, ScanIcon, SearchIcon, WatchIcon} from "lucide-react";
 import Link from "next/link";
 
 const gamesMenus: { [slug: string]: {
@@ -25,6 +25,11 @@ const gamesMenus: { [slug: string]: {
             title: "Deck Checker",
             url: "/riftbound/deck-checker",
             icon: ScanIcon,
+        },
+        {
+            title: "Stats de Parties",
+            url: "/riftbound/game-stats",
+            icon: ChartLineIcon,
         },
     ],
     'swu': [

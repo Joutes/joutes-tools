@@ -2,7 +2,7 @@ import {NextRequest, NextResponse} from "next/server";
 import {BoosterCard} from "@/lib/types/booster";
 import meilisearch, {indexes} from "@/lib/meilisearch";
 
-async function search({ gameId, searchQuery, lang, setCode }: { gameId: string; searchQuery: string; lang: string; setCode: string }): Promise<BoosterCard[]> {
+async function search({ gameId, searchQuery, lang, setCode, type }: { gameId: string; searchQuery: string; lang: string; setCode: string; type?: string }): Promise<BoosterCard[]> {
   const indexConfig = indexes[gameId];
   if (!indexConfig) {
     console.error(`No index found for gameId: ${gameId}`);
@@ -63,6 +63,10 @@ async function search({ gameId, searchQuery, lang, setCode }: { gameId: string; 
     }
   }
 
+  if (type) {
+    queryOptions.filter.push(`type = ${type}`)
+  }
+
   const result = await index.search(queryString, queryOptions);
 
   return result.hits.map(result => ({
@@ -80,12 +84,14 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const setCode = searchParams.get('setCode') || '';
   const searchQuery = searchParams.get('searchQuery') || '';
   const lang = searchParams.get('lang') || 'en';
+  const type = searchParams.get('type') || undefined;
 
   const cards = await search({
     gameId,
     searchQuery,
     lang,
     setCode,
+    type,
   });
 
   return NextResponse.json(cards);
