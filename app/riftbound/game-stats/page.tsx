@@ -5,6 +5,8 @@ import { getMatches } from "@/lib/data/matches";
 import AddMatchDialog from "@/app/riftbound/game-stats/AddMatchDialog";
 import MatchesList from "@/app/riftbound/game-stats/MatchesList";
 import { Trophy, Sword, BarChart3 } from "lucide-react";
+import {Button} from "@/components/ui/button";
+import Link from "next/link";
 
 export default async function RiftboundGameStatsPage() {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -32,7 +34,17 @@ export default async function RiftboundGameStatsPage() {
     <div className="container mx-auto p-6 max-w-4xl">
       <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
         <h1 className="text-3xl font-bold">Statistiques de parties</h1>
-        <AddMatchDialog />
+        <div className="flex gap-2">
+          {matches.length > 0 && (
+            <Button variant="outline" asChild>
+              <Link href="/riftbound/game-stats/statistics">
+                <BarChart3 className="h-4 w-4 mr-2" />
+                Stats par légende
+              </Link>
+            </Button>
+          )}
+          <AddMatchDialog />
+        </div>
       </div>
 
       {/* Stats globales */}

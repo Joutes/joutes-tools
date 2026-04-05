@@ -23,6 +23,26 @@ export type Match = {
   createdAt: string;
 };
 
+export type MatchupStats = {
+  legend: MatchCard;
+  matchesPlayed: number;
+  wins: number;
+  losses: number;
+  draws: number;
+};
+
+export type LegendStats = {
+  legend: MatchCard;
+  matchesPlayed: number;
+  matchWins: number;
+  matchLosses: number;
+  matchDraws: number;
+  gamesWon: number;
+  gamesLost: number;
+  winRate: number; // 0–100
+  matchups: MatchupStats[];
+};
+
 export type MatchDb = {
   userId: ObjectId;
   userLegend: MatchCard;
