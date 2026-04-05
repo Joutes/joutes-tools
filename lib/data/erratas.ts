@@ -4,9 +4,12 @@ import db from "@/lib/mongodb";
 import { Errata, ErrataDb } from "@/lib/types/errata";
 
 export async function getErratasByCardId(cardId: string): Promise<Errata[]> {
+  const card = await db.collection("cards").findOne({ id: cardId });
+  const matchingCardIds = card ? await db.collection('cards').find({ name: card.name }, { projection: { id: 1 } }).toArray() : null;
+
   const erratasDb = await db
     .collection<ErrataDb>("erratas")
-    .find({ cardId })
+    .find(matchingCardIds ? { cardId: { $in: matchingCardIds.map(i => i.id) } } : { cardId })
     .sort({ createdAt: -1 })
     .toArray();
 

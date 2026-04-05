@@ -7,10 +7,6 @@ export default async function RiftboundErratasPage() {
   const erratas = await getAllErratas();
   const userIsAdmin = await isAdmin();
 
-  console.log("Erratas récupérées :", erratas[0], erratas[1]);
-
-  // Récupérer les informations des cartes pour chaque errata
-
   return (
     <div className="container mx-auto p-6">
       <div className="flex items-center justify-between mb-6">

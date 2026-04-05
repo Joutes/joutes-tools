@@ -19,7 +19,6 @@ export default async function RiftboundCardDetailPage({
 
   // Récupérer les informations de la carte depuis Monogdb
   const card = await db.collection<BoosterCard>("cards").findOne({ id: cardId });
-  console.log("Carte récupérée :", card);
 
   if (!card) {
     return (
