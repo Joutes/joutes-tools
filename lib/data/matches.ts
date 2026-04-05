@@ -17,6 +17,7 @@ export async function getMatches(userId: string): Promise<Match[]> {
     opponentLegend: match.opponentLegend,
     games: match.games,
     notes: match.notes,
+    matchDate: match.matchDate.toISOString(),
     createdAt: match.createdAt.toISOString(),
   }));
 }
@@ -31,6 +32,7 @@ export async function createMatch(
     opponentLegend: match.opponentLegend,
     games: match.games,
     notes: match.notes,
+    matchDate: new Date(match.matchDate),
     createdAt: new Date(),
   });
 

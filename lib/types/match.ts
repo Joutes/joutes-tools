@@ -20,6 +20,7 @@ export type Match = {
   opponentLegend: MatchCard;
   games: MatchGame[];
   notes?: string;
+  matchDate: string;
   createdAt: string;
 };
 
@@ -50,6 +51,7 @@ export type MatchDb = {
   opponentLegend: MatchCard;
   games: MatchGame[];
   notes?: string;
+  matchDate: Date;
   createdAt: Date;
 };
 

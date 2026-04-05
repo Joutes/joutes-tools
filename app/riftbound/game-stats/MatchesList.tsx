@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Match } from "@/lib/types/match";
 import { deleteMatchAction } from "@/app/riftbound/game-stats/action";
 import { Button } from "@/components/ui/button";
-import { Trash2, Trophy, Sword, User } from "lucide-react";
+import { Trash2, Trophy, Sword, User, CalendarDays } from "lucide-react";
 
 function MatchResultBadge({ wins, losses }: { wins: number; losses: number }) {
   const isWin = wins > losses;
@@ -134,8 +134,9 @@ export default function MatchesList({ matches }: { matches: Match[] }) {
                       {match.notes}
                     </p>
                   )}
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {new Date(match.createdAt).toLocaleDateString("fr-FR", {
+                  <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                    <CalendarDays className="h-3 w-3 shrink-0" />
+                    {new Date(match.matchDate).toLocaleDateString("fr-FR", {
                       year: "numeric",
                       month: "long",
                       day: "numeric",

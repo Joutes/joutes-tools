@@ -24,6 +24,7 @@ export default function AddMatchDialog() {
   const [opponentLegend, setOpponentLegend] = useState<MatchCard | null>(null);
   const [games, setGames] = useState<MatchGame[]>([]);
   const [notes, setNotes] = useState("");
+  const [matchDate, setMatchDate] = useState(new Date().toISOString().split("T")[0]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   function addGame(result: GameResult) {
@@ -40,6 +41,7 @@ export default function AddMatchDialog() {
     setOpponentLegend(null);
     setGames([]);
     setNotes("");
+    setMatchDate(new Date().toISOString().split("T")[0]);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -58,6 +60,7 @@ export default function AddMatchDialog() {
         opponentLegend,
         games,
         notes: notes.trim() || undefined,
+        matchDate,
       });
       setOpen(false);
       reset();
@@ -118,6 +121,17 @@ export default function AddMatchDialog() {
               onChange={setOpponentLegend}
               placeholder="Rechercher la légende de l'adversaire..."
             />
+
+            {/* Date du match */}
+            <div className="grid gap-2">
+              <label className="text-sm font-medium">Date du match</label>
+              <Input
+                type="date"
+                value={matchDate}
+                onChange={(e) => setMatchDate(e.target.value)}
+                required
+              />
+            </div>
 
             {/* Résultats des parties */}
             <div className="grid gap-3">

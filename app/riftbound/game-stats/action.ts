@@ -12,6 +12,7 @@ export async function createMatchAction(data: {
   opponentLegend: Match["opponentLegend"];
   games: MatchGame[];
   notes?: string;
+  matchDate: string;
 }) {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user?.id) {
@@ -25,6 +26,7 @@ export async function createMatchAction(data: {
     opponentLegend: data.opponentLegend,
     games: data.games,
     notes: data.notes,
+    matchDate: data.matchDate,
   });
 
   revalidatePath("/riftbound/game-stats");
