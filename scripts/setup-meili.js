@@ -11,8 +11,8 @@ import {MeiliSearch} from "meilisearch";
 
   // Delete the index if it already exists
   try {
-    //await client.index(indexName).delete();
-    //console.info('Existing index deleted');
+    await client.index(indexName).delete();
+    console.info('Existing index deleted');
   } catch (e) {
     console.info('Index does not exist, no need to delete');
   }

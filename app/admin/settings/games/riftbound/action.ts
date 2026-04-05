@@ -8,6 +8,7 @@ import {BoosterCard} from "@/lib/types/booster";
 import {headers} from "next/headers";
 import db from "@/lib/mongodb";
 import {ObjectId} from "bson";
+import {DateTime} from "luxon";
 
 const sets: {
   [setName: string]: {
@@ -29,6 +30,12 @@ const sets: {
   '02 - Spiritforged': {
     code: 'SFD',
   },
+  '03 - Unleashed': {
+    code: 'UNL',
+  },
+  '04 - Vendetta': {
+    code: 'VEN',
+  },
 };
 
 export async function importCards() {
@@ -48,14 +55,14 @@ export async function importCards() {
         name: string;
         type: string;
         cost: number;
-        image: string;
+        image: { en: string };
       };
     };
     name: string;
     type: string;
     cost: number;
     Set?: string[];
-  }[] = Object.values(cards);
+  }[] = Object.values(cards); //https://russeus.github.io/RB-TCG-Arena/Riftbound-CardList.json
 
   console.log(`Importing ${cardsArray.length} Riftbound cards...`);
 
@@ -74,7 +81,7 @@ export async function importCards() {
     return {
       ...card,
       id: cardId,
-      image: card.face.front.image,
+      image: card.face.front.image.en,
 
       collectorNumber: cardNumber,
       setCode: cardSetCode ?? '???',
@@ -82,14 +89,25 @@ export async function importCards() {
     };
   });
 
-  for (let i = 0; i < cardsSanitized.length; i += 5000) {
-    const batch = cardsSanitized.slice(i, i + 5000);
+  const existingCardsIds = await db.collection('cards').find({
+    gameId: new ObjectId('69009afea722eab4fa0e55c4'),
+  }, { projection: { id: 1 } }).toArray();
+  console.log(existingCardsIds.length);
+
+
+  const newCardsToAdd = cardsSanitized.filter(card => !existingCardsIds.some(existingCard => existingCard.id === card.id));
+  console.log(`Found ${newCardsToAdd.length} new cards to add.`);
+
+  for (let i = 0; i < newCardsToAdd.length; i += 5000) {
+    const batch = newCardsToAdd.slice(i, i + 5000);
     console.log(`Prepared batch ${i / 5000 + 1} (${batch.length} cards)`);
 
-    await meilisearch.index(indexes.riftbound.name).addDocuments(batch);
+    await meilisearch.index(indexes.riftbound.name).addDocuments(batch, { primaryKey: 'id' });
+
     await db.collection('cards').insertMany(batch.map(card => ({
       ...card,
       gameId: new ObjectId('69009afea722eab4fa0e55c4'),
+      addedAt: DateTime.utc(),
     })));
   }
 
