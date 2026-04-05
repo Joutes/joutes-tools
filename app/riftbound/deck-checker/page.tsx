@@ -15,6 +15,28 @@ import {
 import {validateDeckList, type DeckListCard, type DeckList} from "./action";
 import {type ErrataType} from "@/lib/types/errata";
 
+const ConstructionRules = {
+  legends: {
+    min: 1,
+    max: 1,
+  },
+  champions: {
+    min: 1,
+    max: 1,
+  },
+  maindeck: {
+    min: 39,
+    max: 39,
+  },
+  sideboard: {
+    min: 0,
+    max: 8,
+  },
+  runes: {
+    min: 12,
+    max: 12,
+  },
+}
 
 // ── Parse a pasted deck list text into the DeckList structure ─────────────────
 function parseDeckList(text: string): DeckList {
@@ -209,20 +231,46 @@ function CardTile({card}: {card: DeckListCard}) {
 }
 
 // ── Section grid ──────────────────────────────────────────────────────────────
-function DeckSection({title, cards, compact}: {title: string; cards: DeckListCard[]; compact?: boolean}) {
-  if (cards.length === 0) return null;
+type SectionRules = { min: number; max: number };
+
+function formatRuleNote(rules: SectionRules): string {
+  if (rules.min === rules.max) return `requis\u00a0: ${rules.min}`;
+  return `requis\u00a0: ${rules.min}\u2013${rules.max}`;
+}
+
+function DeckSection({title, cards, compact, rules}: {title: string; cards: DeckListCard[]; compact?: boolean; rules?: SectionRules}) {
   const total = cards.reduce((sum, c) => sum + c.quantity, 0);
+
+  // Hide section only when empty AND (no rules OR min is 0)
+  if (cards.length === 0 && (!rules || rules.min === 0)) return null;
+
+  const isInvalid = rules ? (total < rules.min || total > rules.max) : false;
+
   return (
     <div>
-      <div className="flex items-baseline gap-2 mb-3">
+      <div className="flex items-center gap-2 mb-3 flex-wrap">
         <h2 className="text-lg font-semibold">{title}</h2>
-        <span className="text-sm text-muted-foreground">({total} carte{total > 1 ? 's' : ''})</span>
+        <span className={`text-sm font-medium ${isInvalid ? 'text-red-500' : 'text-muted-foreground'}`}>
+          ({total} carte{total !== 1 ? 's' : ''})
+        </span>
+        {isInvalid && (
+          <span className="text-[10px] font-bold bg-red-600 text-white rounded-full px-2 py-0.5 uppercase tracking-widest leading-none">
+            INVALID
+          </span>
+        )}
+        {rules && (
+          <span className="text-xs text-muted-foreground italic">
+            {formatRuleNote(rules)}
+          </span>
+        )}
       </div>
-      <div className={compact
-        ? "grid grid-cols-2 gap-2"
-        : "grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-2"}>
-        {cards.map((card, idx) => <CardTile key={`${card.name}-${idx}`} card={card} />)}
-      </div>
+      {cards.length > 0 && (
+        <div className={compact
+          ? "grid grid-cols-2 gap-2"
+          : "grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-2"}>
+          {cards.map((card, idx) => <CardTile key={`${card.name}-${idx}`} card={card} />)}
+        </div>
+      )}
     </div>
   );
 }
@@ -299,13 +347,13 @@ export default function RiftboundDeckCheckerPage() {
       {deckList && (
           <div className="space-y-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            <DeckSection title="Légende" cards={deckList.legends} compact />
-            <DeckSection title="Champion" cards={deckList.champions} compact />
+            <DeckSection title="Légende" cards={deckList.legends} compact rules={ConstructionRules.legends} />
+            <DeckSection title="Champion" cards={deckList.champions} compact rules={ConstructionRules.champions} />
             <DeckSection title="Champs de bataille" cards={deckList.battlefields} compact />
-            <DeckSection title="Runes" cards={deckList.runes} compact />
+            <DeckSection title="Runes" cards={deckList.runes} compact rules={ConstructionRules.runes} />
           </div>
-          <DeckSection title="Main Deck" cards={deckList.maindeck} />
-          <DeckSection title="Sideboard" cards={deckList.sideboard} />
+          <DeckSection title="Main Deck" cards={deckList.maindeck} rules={ConstructionRules.maindeck} />
+          <DeckSection title="Sideboard" cards={deckList.sideboard} rules={ConstructionRules.sideboard} />
 
           {unrecognized.length > 0 && (
             <div className="border border-red-500/40 rounded-lg p-4 bg-red-950/20">
