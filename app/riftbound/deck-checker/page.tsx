@@ -12,11 +12,15 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {validateDeckList, type DeckListCard, type DeckList, analyzeDeckListImage} from "./action";
+import {
+  validateDeckList, type DeckListCard, type DeckList, analyzeDeckListImageBase64Action,
+  analyzeDeckListImageURLAction
+} from "./action";
 import {type ErrataType} from "@/lib/types/errata";
 import {useSession} from "@/lib/auth-client";
 import {hasPermission} from "@/lib/permissions";
 import {parseDeckList} from "@/app/riftbound/deck-checker/utils";
+import {upload} from "@vercel/blob/client";
 
 const ConstructionRules = {
   legends: {
@@ -270,11 +274,39 @@ export default function RiftboundDeckCheckerPage() {
       setIsLoading(true);
       setImageFile(file);
 
-      const reader = new FileReader();
-      reader.onloadend = async () => {
+      // if file <1 MB
+      if (file.size <= 1*1024*1024) {
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+          try {
+            const base64 = reader.result as string;
+            const verifyResult = await analyzeDeckListImageBase64Action(base64);
+            setRawDeckList(verifyResult.raw);
+            setDeckList(await validateDeckList(verifyResult.deckList))
+
+            setIsLoading(false);
+          } catch (err) {
+            setError(
+              err instanceof Error ? err.message : "Erreur lors de la vérification"
+            );
+          } finally {
+            setIsLoading(false);
+          }
+        };
+        reader.onerror = () => {
+          setError("Erreur lors de la lecture de l'image");
+          setIsLoading(false);
+        };
+        reader.readAsDataURL(file);
+      } else {
+        // upload file to vercel storage using pre-signed URL first.
         try {
-          const base64 = reader.result as string;
-          const verifyResult = await analyzeDeckListImage(base64);
+          const newBlob = await upload(`/deck-images/${file.name}`, file, {
+            access: 'public',
+            handleUploadUrl: '/api/deck-images/upload',
+          });
+
+          const verifyResult = await analyzeDeckListImageURLAction(newBlob.url);
           setRawDeckList(verifyResult.raw);
           setDeckList(await validateDeckList(verifyResult.deckList))
 
@@ -286,12 +318,7 @@ export default function RiftboundDeckCheckerPage() {
         } finally {
           setIsLoading(false);
         }
-      };
-      reader.onerror = () => {
-        setError("Erreur lors de la lecture de l'image");
-        setIsLoading(false);
-      };
-      reader.readAsDataURL(file);
+      }
     }
   }
 

@@ -110,19 +110,8 @@ export async function validateDeckList(decklist: DeckList): Promise<DeckList> {
   return result;
 }
 
-function normalizeCardName(cardName: string): string {
-  // Retirer les quantités (2x, x2, etc.)
-  let normalized = cardName.replace(/^\d+x\s*/i, "").replace(/\s*x\d+$/i, "");
-  // Retirer la ponctuation et mettre en minuscule
-  normalized = normalized
-    .toLowerCase()
-    .replace(/[^\w\s]/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-  return normalized;
-}
 
-export async function analyzeDeckListImage(imageBase64: string): Promise<{ raw: string; deckList: DeckList }> {
+export async function analyzeDeckListImageBase64Action(imageBase64: string): Promise<{ raw: string; deckList: DeckList }> {
   const session = await auth.api.getSession({
     headers: await headers(),
   });
@@ -144,6 +133,48 @@ export async function analyzeDeckListImage(imageBase64: string): Promise<{ raw: 
           {
             type: "image",
             image: imageBase64,
+          },
+        ],
+      },
+    ],
+  });
+  const trimmed = text.replaceAll('```', '').trim();
+
+  // Parser les listes
+  const deckList = parseDeckList(trimmed);
+
+  return {
+    raw: trimmed,
+    deckList: deckList,
+  };
+}
+
+export async function analyzeDeckListImageURLAction(url: string): Promise<{ raw: string; deckList: DeckList }> {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+  if (session?.user.email !== process.env.ADMIN_EMAIL) {
+    throw new Error('Unauthorized');
+  }
+
+  if (!url.startsWith('https://uiez8a3cxaj4q4wl.public.blob.vercel-storage.com/deck-images/')) {
+    throw new Error('Unauthorized');
+  }
+
+  // Extraire les cartes de la photo avec OpenAI Vision
+  const { text } = await generateText({
+    model: openai("gpt-4o"),
+    messages: [
+      {
+        role: "user",
+        content: [
+          {
+            type: "text",
+            text: "Extract all card names from this Riftbound deck photo. Return ONLY a list of card names, one per line, without any additional text, formatting, or numbering. If the card is in the photo multiple times, list it multiple times, one per line. If the image has a quantity next to the card name, prefix the card name with this quantity.\nGroup cards by deck section if indicated, writing the name of the section above the cards of this section. Available deck sections are: Legends, Champions, Runes, Maindeck, Sideboard.\nNote : cards with the indication 'Choosen Champion' must be put in the Champions section.'",
+          },
+          {
+            type: "image",
+            image: url,
           },
         ],
       },
