@@ -1,8 +1,10 @@
 'use server';
 
-import meilisearch, { indexes } from '@/lib/meilisearch';
+import meilisearch, {indexes} from '@/lib/meilisearch';
 import db from '@/lib/mongodb';
-import { BoosterCard } from '@/lib/types/booster';
+import {BoosterCard} from '@/lib/types/booster';
+import {Errata} from "@/lib/types/errata";
+import {DateTime} from "luxon";
 
 export type DeckListCard = {
   name: string;
@@ -11,6 +13,7 @@ export type DeckListCard = {
   image?: string;
   banned?: boolean;
   recognized?: boolean;
+  erratas?: Errata[];
 };
 
 export type DeckList = {
@@ -29,7 +32,7 @@ export async function validateDeckList(decklist: DeckList): Promise<DeckList> {
 
   type CardWithSection = DeckListCard & { section: keyof DeckList };
   const allCards: CardWithSection[] = allSections.flatMap((section) =>
-    decklist[section].map((card) => ({ ...card, section }))
+    decklist[section].map((card) => ({...card, section}))
   );
 
   // Search each card in Meilisearch in parallel
@@ -54,7 +57,7 @@ export async function validateDeckList(decklist: DeckList): Promise<DeckList> {
         // silently fail per card
       }
 
-      return { ...card, recognized: false as const };
+      return {...card, recognized: false as const};
     })
   );
 
@@ -66,13 +69,46 @@ export async function validateDeckList(decklist: DeckList): Promise<DeckList> {
   const cardsFromDb =
     foundCardIds.length > 0
       ? await db
-          .collection<{ id: string; banned?: boolean }>('cards')
-          .find({ id: { $in: foundCardIds } })
-          .project<{ id: string; banned?: boolean }>({ id: 1, banned: 1 })
-          .toArray()
+        .collection<{ id: string; banned?: boolean }>('cards')
+        .aggregate([
+          {
+            $match: {id: {$in: foundCardIds}}
+          },
+          {
+            $lookup: {
+              from: "erratas",
+              localField: "id",
+              foreignField: "cardId",
+              as: "erratas",
+              pipeline: [
+                {
+                  $addFields: {
+                    id: {
+                      $toString: '_id'
+                    }
+                  },
+                },
+                {
+                  $project: {
+                    _id: 0,
+                    createdBy: 0,
+                  }
+                },
+              ],
+            },
+          },
+          {
+            $project: {
+              id: 1,
+              banned: 1,
+              erratas: 1,
+            }
+          }
+        ])
+        .toArray()
       : [];
 
-  const banMap = new Map(cardsFromDb.map((c) => [c.id, c.banned ?? false]));
+  const cardMap = new Map(cardsFromDb.map((c) => [c.id, c]));
 
   // Rebuild DeckList with enriched data
   const result: DeckList = {
@@ -85,14 +121,17 @@ export async function validateDeckList(decklist: DeckList): Promise<DeckList> {
   };
 
   for (const card of searchResults) {
-    const banned = card.cardId ? (banMap.get(card.cardId) ?? false) : false;
+    const cardDb = cardMap.get(card.cardId);
     result[card.section].push({
       name: card.name,
       quantity: card.quantity,
       cardId: card.cardId,
       image: card.image,
-      banned,
+      banned: cardDb?.banned ?? false,
       recognized: card.recognized,
+      erratas: cardDb?.erratas.map((errata: Errata) => ({
+        ...errata,
+      })) ?? [],
     });
   }
 

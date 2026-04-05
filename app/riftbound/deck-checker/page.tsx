@@ -82,11 +82,20 @@ function CardTile({card}: {card: DeckListCard}) {
       <div className="absolute top-1.5 left-1.5 bg-black/75 text-white text-xs font-bold rounded px-1.5 py-0.5 leading-none">
         &times;{card.quantity}
       </div>
-      {card.banned && (
+      {card.banned ? (
         <div className="absolute top-1.5 right-1.5 bg-red-600 text-white text-[10px] font-bold rounded px-1.5 py-0.5 leading-none uppercase tracking-widest">
           BANNED
         </div>
+      ) : (
+        <>
+          {card.erratas && card.erratas.length > 0 && (
+            <div className="absolute top-1.5 right-1.5 bg-yellow-600 text-white text-[10px] font-bold rounded px-1.5 py-0.5 leading-none uppercase tracking-widest">
+              NOTES
+            </div>
+          )}
+        </>
       )}
+
       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent pt-4 pb-1.5 px-1.5">
         <p className={`text-xs font-medium truncate ${!card.recognized ? 'text-red-400' : 'text-white'}`}>
           {card.name}
