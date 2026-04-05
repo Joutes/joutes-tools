@@ -69,7 +69,7 @@ function parseDeckList(text: string): DeckList {
 // ── Card tile ─────────────────────────────────────────────────────────────────
 function CardTile({card}: {card: DeckListCard}) {
   return (
-    <div className="relative rounded-lg overflow-hidden shadow-md bg-gray-800 group" style={{aspectRatio: '2.5 / 3.5'}}>
+    <div className={`relative rounded-lg overflow-hidden shadow-md bg-gray-800 group${card.banned ? ' ring-2 ring-red-500' : ''}`} style={{aspectRatio: '2.5 / 3.5'}}>
       {card.image ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={card.image} alt={card.name} className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105" />
@@ -83,8 +83,8 @@ function CardTile({card}: {card: DeckListCard}) {
         &times;{card.quantity}
       </div>
       {card.banned && (
-        <div className="absolute top-1.5 right-1.5 bg-red-600 text-white text-[10px] font-bold rounded px-1.5 py-0.5 leading-none uppercase tracking-wide">
-          Banni
+        <div className="absolute top-1.5 right-1.5 bg-red-600 text-white text-[10px] font-bold rounded px-1.5 py-0.5 leading-none uppercase tracking-widest">
+          BANNED
         </div>
       )}
       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent pt-4 pb-1.5 px-1.5">
