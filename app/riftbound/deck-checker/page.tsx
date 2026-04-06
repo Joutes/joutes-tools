@@ -13,14 +13,24 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
   validateDeckList, type DeckListCard, type DeckList, analyzeDeckListImageBase64Action,
   analyzeDeckListImageURLAction
 } from "./action";
 import {type ErrataType} from "@/lib/types/errata";
+import {type BoosterCard} from "@/lib/types/booster";
 import {useSession} from "@/lib/auth-client";
 import {hasPermission} from "@/lib/permissions";
 import {parseDeckList} from "@/app/riftbound/deck-checker/utils";
 import {upload} from "@vercel/blob/client";
+import {Pencil} from "lucide-react";
 
 const ConstructionRules = {
   legends: {
@@ -58,11 +68,111 @@ const ERRATA_CLASS: Record<ErrataType, string> = {
   ruling: "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300",
 };
 
+// ── Edit card dialog ──────────────────────────────────────────────────────────
+function EditCardDialog({
+  card,
+  onSelect,
+  onClose,
+}: {
+  card: DeckListCard | null;
+  onSelect: (newCardName: string) => void;
+  onClose: () => void;
+}) {
+  const [searchQuery, setSearchQuery] = useState(card?.name ?? "");
+  const [results, setResults] = useState<BoosterCard[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+
+  // Reset search query when the edited card changes
+  useEffect(() => {
+    if (card) setSearchQuery(card.name);
+  }, [card]);
+
+  useEffect(() => {
+    if (!card) return;
+    if (searchQuery.length < 2) {
+      setResults([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        const res = await fetch(
+          `/api/games/riftbound/cards?searchQuery=${encodeURIComponent(searchQuery)}&setCode=*&lang=en`
+        );
+        const data: BoosterCard[] = await res.json();
+        setResults(data.slice(0, 20));
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery, card]);
+
+  return (
+    <Dialog open={!!card} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-lg p-0 gap-0 overflow-hidden">
+        <DialogHeader className="px-4 pt-4 pb-2">
+          <DialogTitle>Modifier la carte</DialogTitle>
+          {card && (
+            <p className="text-sm text-muted-foreground">
+              Remplacement de&nbsp;<span className="font-medium text-foreground">{card.name}</span>
+            </p>
+          )}
+        </DialogHeader>
+        <Command shouldFilter={false} className="border-t rounded-none">
+          <CommandInput
+            placeholder="Rechercher une carte…"
+            value={searchQuery}
+            onValueChange={setSearchQuery}
+            autoFocus
+          />
+          <CommandList className="max-h-80">
+            {isSearching ? (
+              <div className="py-6 text-center text-sm text-muted-foreground">Recherche en cours…</div>
+            ) : searchQuery.length < 2 ? (
+              <div className="py-6 text-center text-sm text-muted-foreground">Tapez au moins 2 caractères…</div>
+            ) : results.length === 0 ? (
+              <CommandEmpty>Aucun résultat.</CommandEmpty>
+            ) : (
+              <CommandGroup>
+                {results.map((result) => (
+                  <CommandItem
+                    key={`${result.id}-${result.setCode}-${result.collectorNumber}`}
+                    value={result.id}
+                    onSelect={() => onSelect(result.name)}
+                    className="cursor-pointer gap-3 py-2"
+                  >
+                    {result.image && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={result.image} alt={result.name} className="w-10 h-auto rounded shrink-0" />
+                    )}
+                    <div className="min-w-0">
+                      <div className="font-medium text-sm">{result.name}</div>
+                      {result.subtitle && (
+                        <div className="text-xs text-muted-foreground truncate">{result.subtitle}</div>
+                      )}
+                      <div className="text-xs text-muted-foreground">
+                        {result.setCode} #{result.collectorNumber}
+                      </div>
+                    </div>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
+          </CommandList>
+        </Command>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ── Card tile ─────────────────────────────────────────────────────────────────
-function CardTile({card}: {card: DeckListCard}) {
+function CardTile({card, onEdit}: {card: DeckListCard; onEdit?: () => void}) {
   const hasErratas = (card.erratas?.length ?? 0) > 0;
 
-  const trigger = (
+  const cardContent = (
     <div
       className={`relative rounded-lg overflow-hidden shadow-md bg-gray-800 group cursor-pointer${card.banned ? ' ring-2 ring-red-500' : ''}`}
       style={{aspectRatio: '2.5 / 3.5'}}
@@ -98,12 +208,9 @@ function CardTile({card}: {card: DeckListCard}) {
     </div>
   );
 
-  // Cards without info don't need a modal
-  if (!card.recognized && !hasErratas) return trigger;
-
-  return (
+  const cardWithDialog = (!card.recognized && !hasErratas) ? cardContent : (
     <Dialog>
-      <DialogTrigger asChild>{trigger}</DialogTrigger>
+      <DialogTrigger asChild>{cardContent}</DialogTrigger>
       <DialogContent className="min-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 flex-wrap">
@@ -176,6 +283,21 @@ function CardTile({card}: {card: DeckListCard}) {
       </DialogContent>
     </Dialog>
   );
+
+  if (!onEdit) return cardWithDialog;
+
+  return (
+    <div className="relative group/card">
+      {cardWithDialog}
+      <button
+        onClick={(e) => { e.stopPropagation(); onEdit(); }}
+        className="absolute inset-0 z-10 opacity-0 group-hover/card:opacity-100 transition-opacity flex items-center justify-center bg-black/40 rounded-lg"
+        title="Modifier la carte"
+      >
+        <Pencil className="text-white drop-shadow" size={22} />
+      </button>
+    </div>
+  );
 }
 
 // ── Section grid ──────────────────────────────────────────────────────────────
@@ -186,7 +308,7 @@ function formatRuleNote(rules: SectionRules): string {
   return `requis\u00a0: ${rules.min}\u2013${rules.max}`;
 }
 
-function DeckSection({title, cards, compact, rules}: {title: string; cards: DeckListCard[]; compact?: boolean; rules?: SectionRules}) {
+function DeckSection({title, cards, compact, rules, onEditCard}: {title: string; cards: DeckListCard[]; compact?: boolean; rules?: SectionRules; onEditCard?: (index: number) => void}) {
   const total = cards.reduce((sum, c) => sum + c.quantity, 0);
 
   // Hide section only when empty AND (no rules OR min is 0)
@@ -216,7 +338,13 @@ function DeckSection({title, cards, compact, rules}: {title: string; cards: Deck
         <div className={compact
           ? "grid grid-cols-2 gap-2"
           : "grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-2"}>
-          {cards.map((card, idx) => <CardTile key={`${card.name}-${idx}`} card={card} />)}
+          {cards.map((card, idx) => (
+            <CardTile
+              key={`${card.name}-${idx}`}
+              card={card}
+              onEdit={onEditCard ? () => onEditCard(idx) : undefined}
+            />
+          ))}
         </div>
       )}
     </div>
@@ -232,6 +360,7 @@ export default function RiftboundDeckCheckerPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [canUseImageLoader, setCanUseImageLoader] = useState<boolean | null>(null);
+  const [editingCard, setEditingCard] = useState<{ section: keyof DeckList; index: number } | null>(null);
 
   async function importDeckList() {
     setIsLoading(true);
@@ -332,6 +461,27 @@ export default function RiftboundDeckCheckerPage() {
     });
   }, [session]);
 
+  async function handleEditCard(newCardName: string) {
+    if (!deckList || !editingCard) return;
+    const { section, index } = editingCard;
+    const oldCard = deckList[section][index];
+    const newDeckList: DeckList = {
+      ...deckList,
+      [section]: deckList[section].map((card, i) =>
+        i === index ? { name: newCardName, quantity: oldCard.quantity } : card
+      ),
+    };
+    setEditingCard(null);
+    setIsLoading(true);
+    try {
+      setDeckList(await validateDeckList(newDeckList));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Une erreur est survenue.');
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   const allCards = deckList ? [...deckList.legends, ...deckList.champions, ...deckList.maindeck, ...deckList.battlefields, ...deckList.runes, ...deckList.sideboard] : [];
   const unrecognized = allCards.filter(c => !c.recognized);
 
@@ -380,13 +530,13 @@ export default function RiftboundDeckCheckerPage() {
       {deckList && (
           <div className="space-y-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            <DeckSection title="Légende" cards={deckList.legends} compact rules={ConstructionRules.legends} />
-            <DeckSection title="Champion" cards={deckList.champions} compact rules={ConstructionRules.champions} />
-            <DeckSection title="Champs de bataille" cards={deckList.battlefields} compact />
-            <DeckSection title="Runes" cards={deckList.runes} compact rules={ConstructionRules.runes} />
+            <DeckSection title="Légende" cards={deckList.legends} compact rules={ConstructionRules.legends} onEditCard={(i) => setEditingCard({ section: 'legends', index: i })} />
+            <DeckSection title="Champion" cards={deckList.champions} compact rules={ConstructionRules.champions} onEditCard={(i) => setEditingCard({ section: 'champions', index: i })} />
+            <DeckSection title="Champs de bataille" cards={deckList.battlefields} compact onEditCard={(i) => setEditingCard({ section: 'battlefields', index: i })} />
+            <DeckSection title="Runes" cards={deckList.runes} compact rules={ConstructionRules.runes} onEditCard={(i) => setEditingCard({ section: 'runes', index: i })} />
           </div>
-          <DeckSection title="Main Deck" cards={deckList.maindeck} rules={ConstructionRules.maindeck} />
-          <DeckSection title="Sideboard" cards={deckList.sideboard} rules={ConstructionRules.sideboard} />
+          <DeckSection title="Main Deck" cards={deckList.maindeck} rules={ConstructionRules.maindeck} onEditCard={(i) => setEditingCard({ section: 'maindeck', index: i })} />
+          <DeckSection title="Sideboard" cards={deckList.sideboard} rules={ConstructionRules.sideboard} onEditCard={(i) => setEditingCard({ section: 'sideboard', index: i })} />
 
           {unrecognized.length > 0 && (
             <div className="border border-red-500/40 rounded-lg p-4 bg-red-950/20">
@@ -398,6 +548,13 @@ export default function RiftboundDeckCheckerPage() {
           )}
         </div>
       )}
+
+      <EditCardDialog
+        key={editingCard ? `${editingCard.section}-${editingCard.index}` : 'closed'}
+        card={editingCard ? deckList?.[editingCard.section][editingCard.index] ?? null : null}
+        onSelect={handleEditCard}
+        onClose={() => setEditingCard(null)}
+      />
     </div>
   );
 }
