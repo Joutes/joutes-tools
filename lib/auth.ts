@@ -12,6 +12,12 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: false,
   },
+  socialProviders: {
+    discord: {
+      clientId: process.env.DISCORD_CLIENT_ID!,
+      clientSecret: process.env.DISCORD_CLIENT_SECRET!,
+    },
+  },
   plugins: [
     passkey(),
     emailOTP({

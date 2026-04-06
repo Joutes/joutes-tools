@@ -124,6 +124,22 @@ export function AuthExample() {
             <Key />
             PassKey/WebAuthN
           </Button>
+          <Button onClick={async () => {
+            const { data, error } = await authClient.signIn.social({
+              provider: "discord",
+              fetchOptions: {
+                onSuccess(context) {
+                  router.push('/');
+                },
+                onError(context) {
+                  // Handle authentication errors
+                  console.error("Authentication failed:", context.error.message);
+                }
+              }
+            });
+          }}>
+            Discord
+          </Button>
         </form>
       ) : (
         <form onSubmit={handleVerifyOtp} className="space-y-4">
