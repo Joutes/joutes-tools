@@ -1,10 +1,13 @@
+'use cache'
 import { computeAllLegendStats} from "@/lib/data/matches";
 import LegendStatsView from "@/app/riftbound/game-stats/statistics/LegendStatsView";
 import { BarChart3 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import {cacheLife} from "next/cache";
 
 export default async function GameStatisticsOverviewPage() {
+  cacheLife('minutes');
   const stats = await computeAllLegendStats();
 
   return (
