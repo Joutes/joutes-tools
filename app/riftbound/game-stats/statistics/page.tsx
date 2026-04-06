@@ -4,6 +4,8 @@ import { BarChart3 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
+export const revalidate = 60;
+
 export default async function GameStatisticsOverviewPage() {
   const stats = await computeAllLegendStats();
 
