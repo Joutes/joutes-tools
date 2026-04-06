@@ -287,14 +287,15 @@ function CardTile({card, onEdit}: {card: DeckListCard; onEdit?: () => void}) {
   if (!onEdit) return cardWithDialog;
 
   return (
-    <div className="relative group/card">
+    <div className="group/card relative pb-7">
       {cardWithDialog}
       <button
         onClick={(e) => { e.stopPropagation(); onEdit(); }}
-        className="absolute inset-0 z-10 opacity-0 group-hover/card:opacity-100 transition-opacity flex items-center justify-center bg-black/40 rounded-lg"
+        className="absolute bottom-0 left-0 right-0 h-7 flex items-center justify-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground opacity-0 group-hover/card:opacity-100 transition-opacity"
         title="Modifier la carte"
       >
-        <Pencil className="text-white drop-shadow" size={22} />
+        <Pencil size={11} />
+        <span>Modifier</span>
       </button>
     </div>
   );
