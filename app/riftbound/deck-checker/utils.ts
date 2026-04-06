@@ -37,7 +37,7 @@ export function parseDeckList(text: string): DeckList {
     const line = raw.trim();
     if (!line) continue;
 
-    const headerMatch = line.match(/^([A-Za-z \-]+):?$/);
+    const headerMatch = line.match(/^([A-Za-z\u00C0-\u024F\u1E00-\u1EFF \-]+):?$/);
     if (headerMatch) {
       const key = headerMatch[1].trim().toLowerCase();
       if (map[key]) { current = map[key]; continue; }
