@@ -30,6 +30,7 @@ export async function createMatchAction(data: {
   });
 
   revalidatePath("/riftbound/game-stats");
+  revalidatePath("/riftbound/game-stats/statistics");
 }
 
 export async function deleteMatchAction(matchId: string) {
@@ -41,6 +42,7 @@ export async function deleteMatchAction(matchId: string) {
   await deleteMatch(matchId, session.user.id);
 
   revalidatePath("/riftbound/game-stats");
+  revalidatePath("/riftbound/game-stats/statistics");
 }
 
 export async function updateMatchAction(
@@ -69,5 +71,6 @@ export async function updateMatchAction(
   });
 
   revalidatePath("/riftbound/game-stats");
+  revalidatePath("/riftbound/game-stats/statistics");
 }
 
