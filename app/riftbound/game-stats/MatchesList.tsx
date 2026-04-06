@@ -4,7 +4,8 @@ import { useState } from "react";
 import { Match } from "@/lib/types/match";
 import { deleteMatchAction } from "@/app/riftbound/game-stats/action";
 import { Button } from "@/components/ui/button";
-import { Trash2, Trophy, Sword, User, CalendarDays } from "lucide-react";
+import { Trash2, Trophy, Sword, User, CalendarDays, Pencil } from "lucide-react";
+import EditMatchDialog from "@/app/riftbound/game-stats/EditMatchDialog";
 
 function MatchResultBadge({ wins, losses }: { wins: number; losses: number }) {
   const isWin = wins > losses;
@@ -55,6 +56,8 @@ function DeleteMatchButton({ matchId }: { matchId: string }) {
 }
 
 export default function MatchesList({ matches }: { matches: Match[] }) {
+  const [editingMatch, setEditingMatch] = useState<Match | null>(null);
+
   if (matches.length === 0) {
     return (
       <p className="text-muted-foreground text-center py-12">
@@ -65,6 +68,13 @@ export default function MatchesList({ matches }: { matches: Match[] }) {
 
   return (
     <div className="space-y-4">
+      {editingMatch && (
+        <EditMatchDialog
+          match={editingMatch}
+          open={!!editingMatch}
+          onOpenChange={(open) => { if (!open) setEditingMatch(null); }}
+        />
+      )}
       {matches.map((match) => {
         const wins = match.games.filter((g) => g.result === "win").length;
         const losses = match.games.filter((g) => g.result === "loss").length;
@@ -146,7 +156,17 @@ export default function MatchesList({ matches }: { matches: Match[] }) {
               </div>
 
               {/* Actions */}
-              <DeleteMatchButton matchId={match.id} />
+              <div className="flex flex-col gap-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setEditingMatch(match)}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+                <DeleteMatchButton matchId={match.id} />
+              </div>
             </div>
           </div>
         );

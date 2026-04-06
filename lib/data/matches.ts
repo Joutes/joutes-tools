@@ -43,6 +43,25 @@ export async function createMatch(
   };
 }
 
+export async function updateMatch(
+  matchId: string,
+  userId: string,
+  data: Partial<Omit<Match, "id" | "userId" | "createdAt">>
+): Promise<void> {
+  const update: Partial<MatchDb> & { matchDate?: Date } = {};
+  if (data.userLegend !== undefined) update.userLegend = data.userLegend;
+  if (data.opponentLegend !== undefined) update.opponentLegend = data.opponentLegend;
+  if (data.opponentName !== undefined) update.opponentName = data.opponentName;
+  if (data.games !== undefined) update.games = data.games;
+  if (data.notes !== undefined) update.notes = data.notes;
+  if (data.matchDate !== undefined) update.matchDate = new Date(data.matchDate);
+
+  await db.collection<MatchDb>("stats-matches").updateOne(
+    { _id: new ObjectId(matchId), userId: new ObjectId(userId) },
+    { $set: update }
+  );
+}
+
 export async function deleteMatch(
   matchId: string,
   userId: string
