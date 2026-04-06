@@ -73,27 +73,30 @@ export async function deleteMatch(
 }
 
 export function computeLegendStats(matches: Match[]): LegendStats[] {
-  const legendMap = new Map<
-    string,
-    {
-      legend: Match["userLegend"];
-      matchWins: number;
-      matchLosses: number;
-      matchDraws: number;
-      gamesWon: number;
-      gamesLost: number;
-      matchups: Map<
-        string,
-        { legend: Match["opponentLegend"]; wins: number; losses: number; draws: number }
-      >;
-    }
-  >();
+  type LegendEntry = {
+    legend: Match["userLegend"];
+    matchWins: number;
+    matchLosses: number;
+    matchDraws: number;
+    gamesWon: number;
+    gamesLost: number;
+    matchups: Map<
+      string,
+      { legend: Match["opponentLegend"]; wins: number; losses: number; draws: number }
+    >;
+  };
+  const legendMap = new Map<string, LegendEntry>();
 
-  for (const match of matches) {
-    const key = match.userLegend.name;
+  function processLegend(
+    myLegend: Match["userLegend"],
+    theirLegend: Match["opponentLegend"],
+    myWins: number,
+    myLosses: number
+  ) {
+    const key = myLegend.name;
     if (!legendMap.has(key)) {
       legendMap.set(key, {
-        legend: match.userLegend,
+        legend: myLegend,
         matchWins: 0,
         matchLosses: 0,
         matchDraws: 0,
@@ -102,31 +105,31 @@ export function computeLegendStats(matches: Match[]): LegendStats[] {
         matchups: new Map(),
       });
     }
-
     const stats = legendMap.get(key)!;
+    stats.gamesWon += myWins;
+    stats.gamesLost += myLosses;
+    if (myWins > myLosses) stats.matchWins++;
+    else if (myLosses > myWins) stats.matchLosses++;
+    else stats.matchDraws++;
+
+    const opponentKey = theirLegend.name;
+    if (!stats.matchups.has(opponentKey)) {
+      stats.matchups.set(opponentKey, { legend: theirLegend, wins: 0, losses: 0, draws: 0 });
+    }
+    const matchup = stats.matchups.get(opponentKey)!;
+    if (myWins > myLosses) matchup.wins++;
+    else if (myLosses > myWins) matchup.losses++;
+    else matchup.draws++;
+  }
+
+  for (const match of matches) {
     const wins = match.games.filter((g) => g.result === "win").length;
     const losses = match.games.filter((g) => g.result === "loss").length;
 
-    stats.gamesWon += wins;
-    stats.gamesLost += losses;
-
-    if (wins > losses) stats.matchWins++;
-    else if (losses > wins) stats.matchLosses++;
-    else stats.matchDraws++;
-
-    const opponentKey = match.opponentLegend.name;
-    if (!stats.matchups.has(opponentKey)) {
-      stats.matchups.set(opponentKey, {
-        legend: match.opponentLegend,
-        wins: 0,
-        losses: 0,
-        draws: 0,
-      });
-    }
-    const matchup = stats.matchups.get(opponentKey)!;
-    if (wins > losses) matchup.wins++;
-    else if (losses > wins) matchup.losses++;
-    else matchup.draws++;
+    // Perspective du joueur
+    processLegend(match.userLegend, match.opponentLegend, wins, losses);
+    // Perspective de l'adversaire (résultats inversés)
+    processLegend(match.opponentLegend, match.userLegend, losses, wins);
   }
 
   return Array.from(legendMap.values())
@@ -171,20 +174,12 @@ export async function computeAllLegendStats(): Promise<LegendStats[]> {
       $addFields: {
         gamesWon: {
           $size: {
-            $filter: {
-              input: "$games",
-              as: "g",
-              cond: { $eq: ["$$g.result", "win"] },
-            },
+            $filter: { input: "$games", as: "g", cond: { $eq: ["$$g.result", "win"] } },
           },
         },
         gamesLost: {
           $size: {
-            $filter: {
-              input: "$games",
-              as: "g",
-              cond: { $eq: ["$$g.result", "loss"] },
-            },
+            $filter: { input: "$games", as: "g", cond: { $eq: ["$$g.result", "loss"] } },
           },
         },
       },
@@ -195,38 +190,61 @@ export async function computeAllLegendStats(): Promise<LegendStats[]> {
         isMatchLoss: { $gt: ["$gamesLost", "$gamesWon"] },
       },
     },
-    // ── Étape 2 : regroupement (userLegend × opponentLegend) ───────────────
-    // Permet de calculer les matchups et de sommer gamesWon/gamesLost
-    // sans avoir à les re-propager après le second $group.
+    // ── Étape 2 : deux perspectives par match (joueur + adversaire) ─────────
+    // Chaque match génère deux documents : un pour chaque légende impliquée,
+    // avec les résultats inversés pour la perspective de l'adversaire.
+    {
+      $addFields: {
+        perspectives: [
+          {
+            myLegend: "$userLegend",
+            theirLegend: "$opponentLegend",
+            isWin: "$isMatchWin",
+            isLoss: "$isMatchLoss",
+            gamesWon: "$gamesWon",
+            gamesLost: "$gamesLost",
+          },
+          {
+            myLegend: "$opponentLegend",
+            theirLegend: "$userLegend",
+            isWin: "$isMatchLoss",   // inversé
+            isLoss: "$isMatchWin",   // inversé
+            gamesWon: "$gamesLost",  // inversé
+            gamesLost: "$gamesWon",  // inversé
+          },
+        ],
+      },
+    },
+    { $unwind: "$perspectives" },
+    // ── Étape 3 : regroupement (myLegend × theirLegend) ───────────────────
     {
       $group: {
         _id: {
-          userLegendName: "$userLegend.name",
-          opponentLegendName: "$opponentLegend.name",
+          myLegendName: "$perspectives.myLegend.name",
+          theirLegendName: "$perspectives.theirLegend.name",
         },
-        userLegend: { $first: "$userLegend" },
-        opponentLegend: { $first: "$opponentLegend" },
-        matchupWins: { $sum: { $cond: ["$isMatchWin", 1, 0] } },
-        matchupLosses: { $sum: { $cond: ["$isMatchLoss", 1, 0] } },
+        myLegend: { $first: "$perspectives.myLegend" },
+        theirLegend: { $first: "$perspectives.theirLegend" },
+        matchupWins: { $sum: { $cond: ["$perspectives.isWin", 1, 0] } },
+        matchupLosses: { $sum: { $cond: ["$perspectives.isLoss", 1, 0] } },
         matchupDraws: {
           $sum: {
             $cond: [
-              { $and: [{ $not: ["$isMatchWin"] }, { $not: ["$isMatchLoss"] }] },
+              { $and: [{ $not: ["$perspectives.isWin"] }, { $not: ["$perspectives.isLoss"] }] },
               1,
               0,
             ],
           },
         },
-        gamesWon: { $sum: "$gamesWon" },
-        gamesLost: { $sum: "$gamesLost" },
+        gamesWon: { $sum: "$perspectives.gamesWon" },
+        gamesLost: { $sum: "$perspectives.gamesLost" },
       },
     },
-    // ── Étape 3 : regroupement par userLegend ─────────────────────────────
-    // Agrège les totaux et construit le tableau de matchups en une passe.
+    // ── Étape 4 : regroupement par myLegend ───────────────────────────────
     {
       $group: {
-        _id: "$_id.userLegendName",
-        legend: { $first: "$userLegend" },
+        _id: "$_id.myLegendName",
+        legend: { $first: "$myLegend" },
         matchWins: { $sum: "$matchupWins" },
         matchLosses: { $sum: "$matchupLosses" },
         matchDraws: { $sum: "$matchupDraws" },
@@ -234,7 +252,7 @@ export async function computeAllLegendStats(): Promise<LegendStats[]> {
         gamesLost: { $sum: "$gamesLost" },
         matchups: {
           $push: {
-            legend: "$opponentLegend",
+            legend: "$theirLegend",
             matchesPlayed: {
               $add: ["$matchupWins", "$matchupLosses", "$matchupDraws"],
             },
@@ -245,7 +263,7 @@ export async function computeAllLegendStats(): Promise<LegendStats[]> {
         },
       },
     },
-    // ── Étape 4 : champs dérivés finaux ────────────────────────────────────
+    // ── Étape 5 : champs dérivés finaux ────────────────────────────────────
     {
       $addFields: {
         matchesPlayed: { $add: ["$matchWins", "$matchLosses", "$matchDraws"] },
@@ -265,7 +283,6 @@ export async function computeAllLegendStats(): Promise<LegendStats[]> {
             else: 0,
           },
         },
-        // Tri des matchups par nombre de matchs joués (desc) directement en base
         matchups: {
           $sortArray: { input: "$matchups", sortBy: { matchesPlayed: -1 } },
         },
