@@ -90,7 +90,7 @@ export function computeLegendStats(matches: Match[]): LegendStats[] {
   >();
 
   for (const match of matches) {
-    const key = match.userLegend.cardId;
+    const key = match.userLegend.name;
     if (!legendMap.has(key)) {
       legendMap.set(key, {
         legend: match.userLegend,
@@ -114,7 +114,7 @@ export function computeLegendStats(matches: Match[]): LegendStats[] {
     else if (losses > wins) stats.matchLosses++;
     else stats.matchDraws++;
 
-    const opponentKey = match.opponentLegend.cardId;
+    const opponentKey = match.opponentLegend.name;
     if (!stats.matchups.has(opponentKey)) {
       stats.matchups.set(opponentKey, {
         legend: match.opponentLegend,
@@ -201,8 +201,8 @@ export async function computeAllLegendStats(): Promise<LegendStats[]> {
     {
       $group: {
         _id: {
-          userCardId: "$userLegend.cardId",
-          opponentCardId: "$opponentLegend.cardId",
+          userLegendName: "$userLegend.name",
+          opponentLegendName: "$opponentLegend.name",
         },
         userLegend: { $first: "$userLegend" },
         opponentLegend: { $first: "$opponentLegend" },
@@ -225,7 +225,7 @@ export async function computeAllLegendStats(): Promise<LegendStats[]> {
     // Agrège les totaux et construit le tableau de matchups en une passe.
     {
       $group: {
-        _id: "$_id.userCardId",
+        _id: "$_id.userLegendName",
         legend: { $first: "$userLegend" },
         matchWins: { $sum: "$matchupWins" },
         matchLosses: { $sum: "$matchupLosses" },
