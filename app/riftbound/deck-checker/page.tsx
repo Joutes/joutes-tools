@@ -169,7 +169,7 @@ function EditCardDialog({
 }
 
 // ── Card tile ─────────────────────────────────────────────────────────────────
-function CardTile({card, onEdit}: {card: DeckListCard; onEdit?: () => void}) {
+function CardTile({card, onEdit, onQuantityChange}: {card: DeckListCard; onEdit?: () => void; onQuantityChange?: (delta: number) => void}) {
   const hasErratas = (card.erratas?.length ?? 0) > 0;
 
   const cardContent = (
@@ -186,8 +186,23 @@ function CardTile({card, onEdit}: {card: DeckListCard; onEdit?: () => void}) {
           <span className="text-red-400 text-center text-xs font-medium leading-tight line-clamp-3">{card.name}</span>
         </div>
       )}
-      <div className="absolute top-1.5 left-1.5 bg-black/75 text-white text-xs font-bold rounded px-1.5 py-0.5 leading-none">
-        &times;{card.quantity}
+      <div className="absolute top-1.5 left-1.5 flex items-center gap-0.5">
+        {onQuantityChange && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onQuantityChange(-1); }}
+            disabled={card.quantity <= 1}
+            className="w-5 h-5 flex items-center justify-center bg-black/75 hover:bg-black text-white text-sm font-bold rounded leading-none opacity-0 group-hover/card:opacity-100 transition-opacity disabled:opacity-20 disabled:cursor-not-allowed"
+          >−</button>
+        )}
+        <div className="bg-black/75 text-white text-xs font-bold rounded px-1.5 py-0.5 leading-none">
+          &times;{card.quantity}
+        </div>
+        {onQuantityChange && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onQuantityChange(+1); }}
+            className="w-5 h-5 flex items-center justify-center bg-black/75 hover:bg-black text-white text-sm font-bold rounded leading-none opacity-0 group-hover/card:opacity-100 transition-opacity"
+          >+</button>
+        )}
       </div>
       {card.banned ? (
         <div className="absolute top-1.5 right-1.5 bg-red-600 text-white text-[10px] font-bold rounded px-1.5 py-0.5 leading-none uppercase tracking-widest">
@@ -284,19 +299,21 @@ function CardTile({card, onEdit}: {card: DeckListCard; onEdit?: () => void}) {
     </Dialog>
   );
 
-  if (!onEdit) return cardWithDialog;
+  if (!onEdit && !onQuantityChange) return cardWithDialog;
 
   return (
-    <div className="group/card relative pb-7">
+    <div className={`group/card relative${onEdit ? ' pb-7' : ''}`}>
       {cardWithDialog}
-      <button
-        onClick={(e) => { e.stopPropagation(); onEdit(); }}
-        className="absolute bottom-0 left-0 right-0 h-7 flex items-center justify-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground opacity-0 group-hover/card:opacity-100 transition-opacity"
-        title="Modifier la carte"
-      >
-        <Pencil size={11} />
-        <span>Modifier</span>
-      </button>
+      {onEdit && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onEdit(); }}
+          className="absolute bottom-0 left-0 right-0 h-7 flex items-center justify-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground opacity-0 group-hover/card:opacity-100 transition-opacity"
+          title="Modifier la carte"
+        >
+          <Pencil size={11} />
+          <span>Modifier</span>
+        </button>
+      )}
     </div>
   );
 }
@@ -309,7 +326,7 @@ function formatRuleNote(rules: SectionRules): string {
   return `requis\u00a0: ${rules.min}\u2013${rules.max}`;
 }
 
-function DeckSection({title, cards, compact, rules, onEditCard}: {title: string; cards: DeckListCard[]; compact?: boolean; rules?: SectionRules; onEditCard?: (index: number) => void}) {
+function DeckSection({title, cards, compact, rules, onEditCard, onQuantityChange}: {title: string; cards: DeckListCard[]; compact?: boolean; rules?: SectionRules; onEditCard?: (index: number) => void; onQuantityChange?: (index: number, delta: number) => void}) {
   const total = cards.reduce((sum, c) => sum + c.quantity, 0);
 
   // Hide section only when empty AND (no rules OR min is 0)
@@ -344,6 +361,7 @@ function DeckSection({title, cards, compact, rules, onEditCard}: {title: string;
               key={`${card.name}-${idx}`}
               card={card}
               onEdit={onEditCard ? () => onEditCard(idx) : undefined}
+              onQuantityChange={onQuantityChange ? (delta) => onQuantityChange(idx, delta) : undefined}
             />
           ))}
         </div>
@@ -462,6 +480,21 @@ export default function RiftboundDeckCheckerPage() {
     });
   }, [session]);
 
+  function handleQuantityChange(section: keyof DeckList, index: number, delta: number) {
+    if (!deckList) return;
+    const card = deckList[section][index];
+    const newQuantity = card.quantity + delta;
+    if (newQuantity < 1) return;
+    const newDeckList: DeckList = {
+      ...deckList,
+      [section]: deckList[section].map((c, i) =>
+        i === index ? { ...c, quantity: newQuantity } : c
+      ),
+    };
+    setDeckList(newDeckList);
+    setRawDeckList(stringifyDeckList(newDeckList));
+  }
+
   async function handleEditCard(newCardName: string) {
     if (!deckList || !editingCard) return;
     const { section, index } = editingCard;
@@ -532,13 +565,13 @@ export default function RiftboundDeckCheckerPage() {
       {deckList && (
           <div className="space-y-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            <DeckSection title="Légende" cards={deckList.legends} compact rules={ConstructionRules.legends} onEditCard={(i) => setEditingCard({ section: 'legends', index: i })} />
-            <DeckSection title="Champion" cards={deckList.champions} compact rules={ConstructionRules.champions} onEditCard={(i) => setEditingCard({ section: 'champions', index: i })} />
-            <DeckSection title="Champs de bataille" cards={deckList.battlefields} compact onEditCard={(i) => setEditingCard({ section: 'battlefields', index: i })} />
-            <DeckSection title="Runes" cards={deckList.runes} compact rules={ConstructionRules.runes} onEditCard={(i) => setEditingCard({ section: 'runes', index: i })} />
+            <DeckSection title="Légende" cards={deckList.legends} compact rules={ConstructionRules.legends} onEditCard={(i) => setEditingCard({ section: 'legends', index: i })} onQuantityChange={(i, d) => handleQuantityChange('legends', i, d)} />
+            <DeckSection title="Champion" cards={deckList.champions} compact rules={ConstructionRules.champions} onEditCard={(i) => setEditingCard({ section: 'champions', index: i })} onQuantityChange={(i, d) => handleQuantityChange('champions', i, d)} />
+            <DeckSection title="Champs de bataille" cards={deckList.battlefields} compact onEditCard={(i) => setEditingCard({ section: 'battlefields', index: i })} onQuantityChange={(i, d) => handleQuantityChange('battlefields', i, d)} />
+            <DeckSection title="Runes" cards={deckList.runes} compact rules={ConstructionRules.runes} onEditCard={(i) => setEditingCard({ section: 'runes', index: i })} onQuantityChange={(i, d) => handleQuantityChange('runes', i, d)} />
           </div>
-          <DeckSection title="Main Deck" cards={deckList.maindeck} rules={ConstructionRules.maindeck} onEditCard={(i) => setEditingCard({ section: 'maindeck', index: i })} />
-          <DeckSection title="Sideboard" cards={deckList.sideboard} rules={ConstructionRules.sideboard} onEditCard={(i) => setEditingCard({ section: 'sideboard', index: i })} />
+          <DeckSection title="Main Deck" cards={deckList.maindeck} rules={ConstructionRules.maindeck} onEditCard={(i) => setEditingCard({ section: 'maindeck', index: i })} onQuantityChange={(i, d) => handleQuantityChange('maindeck', i, d)} />
+          <DeckSection title="Sideboard" cards={deckList.sideboard} rules={ConstructionRules.sideboard} onEditCard={(i) => setEditingCard({ section: 'sideboard', index: i })} onQuantityChange={(i, d) => handleQuantityChange('sideboard', i, d)} />
 
           {unrecognized.length > 0 && (
             <div className="border border-red-500/40 rounded-lg p-4 bg-red-950/20">
