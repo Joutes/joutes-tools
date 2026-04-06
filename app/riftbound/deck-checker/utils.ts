@@ -64,3 +64,28 @@ export function parseDeckList(text: string): DeckList {
 
   return result;
 }
+
+// ── Stringify a DeckList back to raw text ──────────────────────────────────────
+export function stringifyDeckList(deckList: DeckList): string {
+  const sections: Array<{ label: string; key: keyof DeckList }> = [
+    { label: 'Legend', key: 'legends' },
+    { label: 'Champion', key: 'champions' },
+    { label: 'MainDeck', key: 'maindeck' },
+    { label: 'Sideboard', key: 'sideboard' },
+    { label: 'Battlefields', key: 'battlefields' },
+    { label: 'Runes', key: 'runes' },
+  ];
+
+  const parts: string[] = [];
+  for (const { label, key } of sections) {
+    const cards = deckList[key];
+    if (cards.length === 0) continue;
+    parts.push(`${label}:`);
+    for (const card of cards) {
+      parts.push(`${card.quantity} ${card.name}`);
+    }
+    parts.push('');
+  }
+
+  return parts.join('\n').trim();
+}

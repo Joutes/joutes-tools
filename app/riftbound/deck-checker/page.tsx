@@ -28,7 +28,7 @@ import {type ErrataType} from "@/lib/types/errata";
 import {type BoosterCard} from "@/lib/types/booster";
 import {useSession} from "@/lib/auth-client";
 import {hasPermission} from "@/lib/permissions";
-import {parseDeckList} from "@/app/riftbound/deck-checker/utils";
+import {parseDeckList, stringifyDeckList} from "@/app/riftbound/deck-checker/utils";
 import {upload} from "@vercel/blob/client";
 import {Pencil} from "lucide-react";
 
@@ -473,6 +473,7 @@ export default function RiftboundDeckCheckerPage() {
       ),
     };
     setEditingCard(null);
+    setRawDeckList(stringifyDeckList(newDeckList));
     setIsLoading(true);
     try {
       setDeckList(await validateDeckList(newDeckList));
