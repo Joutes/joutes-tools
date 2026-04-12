@@ -1,14 +1,17 @@
 import { getErratasByCardId } from "@/lib/data/erratas";
 import { isAdmin } from "@/lib/auth-utils";
-import meilisearch, { indexes } from "@/lib/meilisearch";
 import { BoosterCard } from "@/lib/types/booster";
 import AddErrataButton from "./AddErrataButton";
 import BanCardButton from "./BanCardButton";
 import ReactMarkdown from "react-markdown";
 import DeleteErrataButton from "@/components/DeleteErrataButton";
 import EditErrataDialog from "@/components/EditErrataDialog";
+import ErrataVoteButtons from "@/components/ErrataVoteButtons";
 import CardSearchBar from "./CardSearchBar";
 import db from "@/lib/mongodb";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+import { hasPermission } from "@/lib/permissions";
 
 export default async function RiftboundCardDetailPage({
   params,
@@ -17,7 +20,10 @@ export default async function RiftboundCardDetailPage({
 }) {
   const { cardId } = await params;
 
-  // Récupérer les informations de la carte depuis Monogdb
+  const session = await auth.api.getSession({ headers: await headers() });
+  const userId = session?.user?.id;
+
+  // Récupérer les informations de la carte depuis MongoDB
   const card = await db.collection<BoosterCard>("cards").findOne({ id: cardId });
 
   if (!card) {
@@ -29,11 +35,12 @@ export default async function RiftboundCardDetailPage({
     );
   }
 
-  // Récupérer les erratas pour cette carte
-  const erratas = await getErratasByCardId(cardId);
+  // Récupérer les erratas pour cette carte (avec votes)
+  const erratas = await getErratasByCardId(cardId, userId);
 
   // Vérifier si l'utilisateur est admin
   const userIsAdmin = await isAdmin();
+  const userCanVoteErratas = await hasPermission('erratas:vote');
 
   return (
     <div className="container mx-auto p-6">
@@ -155,6 +162,13 @@ export default async function RiftboundCardDetailPage({
                         </span>
                       </div>
                     )}
+                    <div className="mt-3 pt-3 border-t">
+                      <ErrataVoteButtons
+                        errataId={errata.id}
+                        votes={errata.votes}
+                        userCanVote={userCanVoteErratas}
+                      />
+                    </div>
                   </div>
                 ))}
               </div>

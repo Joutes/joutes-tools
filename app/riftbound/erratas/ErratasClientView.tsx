@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useTransition } from "react";
+import { useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,13 +10,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Errata, ErrataType, ErrataVoteType } from "@/lib/types/errata";
+import { Errata, ErrataType } from "@/lib/types/errata";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import DeleteErrataButton from "@/components/DeleteErrataButton";
 import EditErrataDialog from "@/components/EditErrataDialog";
-import { Search, ArrowUpDown, ThumbsUp, ThumbsDown } from "lucide-react";
-import { voteErrata } from "./action";
+import ErrataVoteButtons from "@/components/ErrataVoteButtons";
+import { Search, ArrowUpDown } from "lucide-react";
 
 export default function ErratasClientView({
   erratas,
@@ -30,7 +30,6 @@ export default function ErratasClientView({
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<ErrataType | "all">("all");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
-  const [isPending, startTransition] = useTransition();
 
   const filteredAndSortedErratas = useMemo(() => {
     let result = erratas;
@@ -62,11 +61,6 @@ export default function ErratasClientView({
     setSortOrder((prev) => (prev === "desc" ? "asc" : "desc"));
   };
 
-  const handleVote = (errataId: string, vote: ErrataVoteType) => {
-    startTransition(async () => {
-      await voteErrata(errataId, vote);
-    });
-  };
 
   return (
     <>
@@ -226,44 +220,11 @@ export default function ErratasClientView({
                     </div>
                   )}
                   <div className="mt-3 pt-3 border-t flex items-center gap-3">
-                    <button
-                      disabled={!userCanVoteErratas || isPending}
-                      onClick={() => handleVote(errata.id, "positive")}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                        errata.votes.userVote === "positive"
-                          ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
-                          : "bg-muted text-muted-foreground hover:bg-green-50 hover:text-green-700 dark:hover:bg-green-950 dark:hover:text-green-300"
-                      } disabled:opacity-50 disabled:cursor-not-allowed`}
-                      title={
-                        !userCanVoteErratas
-                          ? "Vous n'avez pas la permission de voter"
-                          : errata.votes.userVote === "positive"
-                          ? "Retirer mon vote positif"
-                          : "Voter positivement"
-                      }
-                    >
-                      <ThumbsUp className="h-4 w-4" />
-                      <span>{errata.votes.positive}</span>
-                    </button>
-                    <button
-                      disabled={!userCanVoteErratas || isPending}
-                      onClick={() => handleVote(errata.id, "negative")}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                        errata.votes.userVote === "negative"
-                          ? "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
-                          : "bg-muted text-muted-foreground hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-950 dark:hover:text-red-300"
-                      } disabled:opacity-50 disabled:cursor-not-allowed`}
-                      title={
-                        !userCanVoteErratas
-                          ? "Vous n'avez pas la permission de voter"
-                          : errata.votes.userVote === "negative"
-                          ? "Retirer mon vote négatif"
-                          : "Voter négativement"
-                      }
-                    >
-                      <ThumbsDown className="h-4 w-4" />
-                      <span>{errata.votes.negative}</span>
-                    </button>
+                    <ErrataVoteButtons
+                      errataId={errata.id}
+                      votes={errata.votes}
+                      userCanVote={userCanVoteErratas}
+                    />
                   </div>
                 </div>
               </div>
