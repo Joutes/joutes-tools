@@ -1,12 +1,17 @@
 import { getAllErratas } from "@/lib/data/erratas";
-import { isAdmin } from "@/lib/auth-utils";
 import AddErrataDialog from "./AddErrataDialog";
 import ErratasClientView from "./ErratasClientView";
-import {hasPermission} from "@/lib/permissions";
+import { hasPermission } from "@/lib/permissions";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 
 export default async function RiftboundErratasPage() {
-  const erratas = await getAllErratas();
+  const session = await auth.api.getSession({ headers: await headers() });
+  const userId = session?.user?.id;
+
+  const erratas = await getAllErratas(userId);
   const userCanUpdateErratas = await hasPermission('erratas:update');
+  const userCanVoteErratas = await hasPermission('erratas:vote');
 
   return (
     <div className="container mx-auto p-6">
@@ -18,6 +23,7 @@ export default async function RiftboundErratasPage() {
       <ErratasClientView
         erratas={erratas}
         userCanUpdateErratas={userCanUpdateErratas}
+        userCanVoteErratas={userCanVoteErratas}
       />
     </div>
   );

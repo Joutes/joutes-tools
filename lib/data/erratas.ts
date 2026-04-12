@@ -2,6 +2,7 @@
 
 import db from "@/lib/mongodb";
 import { Errata, ErrataDb } from "@/lib/types/errata";
+import { ObjectId } from "bson";
 
 export async function getErratasByCardId(cardId: string): Promise<Errata[]> {
   const card = await db.collection("cards").findOne({ id: cardId });
@@ -23,10 +24,11 @@ export async function getErratasByCardId(cardId: string): Promise<Errata[]> {
     createdBy: errata.createdBy.toString(),
     createdAt: errata.createdAt,
     deprecatedAt: errata.deprecatedAt,
+    votes: { positive: 0, negative: 0 },
   }));
 }
 
-export async function getAllErratas(): Promise<Errata[]> {
+export async function getAllErratas(userId?: string): Promise<Errata[]> {
   const erratasDb = await db
     .collection<ErrataDb>("erratas")
     .aggregate([
@@ -37,15 +39,8 @@ export async function getAllErratas(): Promise<Errata[]> {
           foreignField: 'id',
           as: 'card',
           pipeline: [
-            {
-              $limit: 1
-            },
-            {
-              $project: {
-                _id: 0,
-                gameId: 0,
-              },
-            },
+            { $limit: 1 },
+            { $project: { _id: 0, gameId: 0 } },
           ],
         },
       },
@@ -53,6 +48,14 @@ export async function getAllErratas(): Promise<Errata[]> {
         $unwind: {
           path: '$card',
           preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $lookup: {
+          from: 'errata-votes',
+          localField: '_id',
+          foreignField: 'errataId',
+          as: 'votesList',
         },
       },
       {
@@ -74,5 +77,12 @@ export async function getAllErratas(): Promise<Errata[]> {
     createdBy: errata.createdBy.toString(),
     createdAt: errata.createdAt,
     deprecatedAt: errata.deprecatedAt,
+    votes: {
+      positive: (errata.votesList ?? []).filter((v: { vote: string }) => v.vote === 'positive').length,
+      negative: (errata.votesList ?? []).filter((v: { vote: string }) => v.vote === 'negative').length,
+      userVote: userId
+        ? (errata.votesList ?? []).find((v: { userId: ObjectId; vote: string }) => v.userId.toString() === userId)?.vote
+        : undefined,
+    },
   }));
 }

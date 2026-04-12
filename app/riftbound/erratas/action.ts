@@ -4,10 +4,9 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import db from "@/lib/mongodb";
-import { ErrataDb, ErrataType } from "@/lib/types/errata";
+import { ErrataDb, ErrataType, ErrataVoteDb, ErrataVoteType } from "@/lib/types/errata";
 import { ObjectId } from "bson";
-import { requireAdmin } from "@/lib/auth-utils";
-import {requirePermission} from "@/lib/permissions";
+import { requirePermission } from "@/lib/permissions";
 
 export async function createErrata(data: {
   cardId: string;
@@ -95,3 +94,38 @@ export async function deleteErrata(errataId: string, cardId?: string) {
     revalidatePath(`/riftbound/cards/${cardId}`);
   }
 }
+
+export async function voteErrata(errataId: string, vote: ErrataVoteType) {
+  await requirePermission("erratas:vote");
+
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session?.user?.id) {
+    throw new Error("Utilisateur non authentifié");
+  }
+
+  const userId = new ObjectId(session.user.id);
+  const errataObjId = new ObjectId(errataId);
+
+  const existing = await db.collection<ErrataVoteDb>("errata-votes").findOne({
+    errataId: errataObjId,
+    userId,
+  });
+
+  if (existing && existing.vote === vote) {
+    // Même vote → retrait du vote
+    await db.collection<ErrataVoteDb>("errata-votes").deleteOne({
+      errataId: errataObjId,
+      userId,
+    });
+  } else {
+    // Nouveau vote ou changement de vote → upsert
+    await db.collection<ErrataVoteDb>("errata-votes").updateOne(
+      { errataId: errataObjId, userId },
+      { $set: { vote, createdAt: new Date() } },
+      { upsert: true }
+    );
+  }
+
+  revalidatePath("/riftbound/erratas");
+}
+
