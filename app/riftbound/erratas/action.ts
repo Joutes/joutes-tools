@@ -7,6 +7,7 @@ import db from "@/lib/mongodb";
 import { ErrataDb, ErrataType } from "@/lib/types/errata";
 import { ObjectId } from "bson";
 import { requireAdmin } from "@/lib/auth-utils";
+import {requirePermission} from "@/lib/permissions";
 
 export async function createErrata(data: {
   cardId: string;
@@ -15,7 +16,7 @@ export async function createErrata(data: {
   source?: string;
   errataDate: Date;
 }) {
-  await requireAdmin();
+  await requirePermission("erratas:update");
 
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session?.user?.id) {
@@ -49,7 +50,7 @@ export async function updateErrata(
   },
   cardId?: string
 ) {
-  await requireAdmin();
+  await requirePermission("erratas:update");
 
   const updateFields: Partial<ErrataDb> = {
     type: data.type,
@@ -85,7 +86,7 @@ export async function updateErrata(
 }
 
 export async function deleteErrata(errataId: string, cardId?: string) {
-  await requireAdmin();
+  await requirePermission("erratas:update");
 
   await db.collection<ErrataDb>("erratas").deleteOne({ _id: new ObjectId(errataId) });
 

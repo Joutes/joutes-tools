@@ -19,10 +19,10 @@ import { Search, ArrowUpDown } from "lucide-react";
 
 export default function ErratasClientView({
   erratas,
-  userIsAdmin,
+  userCanUpdateErratas,
 }: {
   erratas: Errata[];
-  userIsAdmin: boolean;
+  userCanUpdateErratas: boolean;
 }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<ErrataType | "all">("all");
@@ -170,7 +170,7 @@ export default function ErratasClientView({
                         )}
                       </span>
                     </div>
-                    {userIsAdmin && (
+                    {userCanUpdateErratas && (
                       <div className="flex gap-1">
                         <EditErrataDialog
                           errata={errata}

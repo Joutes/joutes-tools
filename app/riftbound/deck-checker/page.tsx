@@ -28,7 +28,7 @@ import {type ErrataType} from "@/lib/types/errata";
 import {type BoosterCard} from "@/lib/types/booster";
 import {useSession} from "@/lib/auth-client";
 import {hasPermission} from "@/lib/permissions";
-import {parseDeckList, stringifyDeckList} from "@/app/riftbound/deck-checker/utils";
+import {parseDeckList, serializeDeckList, stringifyDeckList} from "@/app/riftbound/deck-checker/utils";
 import {upload} from "@vercel/blob/client";
 import {Pencil} from "lucide-react";
 
@@ -564,6 +564,13 @@ export default function RiftboundDeckCheckerPage() {
 
       {deckList && (
           <div className="space-y-8">
+            <Button className="hidden" onClick={() => {
+              const link = `${process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL}` : 'http://localhost:3000'}/riftbound/deck-checker?deckCode=${serializeDeckList(deckList)}`;
+
+              if (window?.navigator?.clipboard) {
+                window?.navigator?.clipboard.writeText(link);
+              }
+            }}>Copier le lien</Button>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             <DeckSection title="Légende" cards={deckList.legends} compact rules={ConstructionRules.legends} onEditCard={(i) => setEditingCard({ section: 'legends', index: i })} onQuantityChange={(i, d) => handleQuantityChange('legends', i, d)} />
             <DeckSection title="Champion" cards={deckList.champions} compact rules={ConstructionRules.champions} onEditCard={(i) => setEditingCard({ section: 'champions', index: i })} onQuantityChange={(i, d) => handleQuantityChange('champions', i, d)} />

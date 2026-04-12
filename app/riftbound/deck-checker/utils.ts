@@ -1,5 +1,7 @@
 // ── Parse a pasted deck list text into the DeckList structure ─────────────────
-import {DeckList} from "@/app/riftbound/deck-checker/action";
+import {DeckList, DeckListCard} from "@/app/riftbound/deck-checker/action";
+import { getCodeFromDeck } from "@piltoverarchive/riftbound-deck-codes";
+import type { Deck, Card } from "@piltoverarchive/riftbound-deck-codes";
 
 export function parseDeckList(text: string): DeckList {
   const result: DeckList = {
@@ -88,4 +90,26 @@ export function stringifyDeckList(deckList: DeckList): string {
   }
 
   return parts.join('\n').trim();
+}
+
+export function serializeDeckList(deckList: DeckList): string {
+  return getCodeFromDeck([...deckList.maindeck, ...deckList.runes, ...deckList.sideboard, ...deckList.legends].map((c: DeckListCard): Card => {
+    if (!c.cardId) {
+      throw new Error('Missing card ID');
+    }
+
+    return {
+      cardCode: c.cardId,
+      count: c.quantity,
+    };
+  }), deckList.sideboard.map((c: DeckListCard): Card => {
+    if (!c.cardId) {
+      throw new Error('Missing card ID');
+    }
+
+    return {
+      cardCode: c.cardId,
+      count: c.quantity,
+    };
+  }), deckList.champions[0].cardId);
 }
