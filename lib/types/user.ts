@@ -8,4 +8,5 @@ export type User = {
   image?: string; // Avatar de l'utilisateur
   createdAt?: Date;
   updatedAt?: Date;
+  permissions: string[];
 }
