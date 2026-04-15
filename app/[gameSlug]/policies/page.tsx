@@ -1,9 +1,60 @@
-export default async function GamePoliciesPage({ params }: { params: Promise<{ gameSlug: string }> }) {
+import { getAllPolicies, countAllPolicies } from "@/lib/data/policies";
+import AddPolicyDialog from "./AddPolicyDialog";
+import PoliciesClientView from "./PoliciesClientView";
+import { hasPermission } from "@/lib/permissions";
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+import db from "@/lib/mongodb";
+import { Game } from "@/lib/types/game";
+import { notFound } from "next/navigation";
+
+const PAGE_SIZE = 20;
+
+export default async function GamePoliciesPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ gameSlug: string }>;
+  searchParams: Promise<{ page?: string }>;
+}) {
   const { gameSlug } = await params;
 
+  const game = await db.collection<Game>("games").findOne({ slug: gameSlug });
+  if (!game) notFound();
+
+  const gameId = game._id.toString();
+
+  const session = await auth.api.getSession({ headers: await headers() });
+  const userId = session?.user?.id;
+
+  const { page: pageParam } = await searchParams;
+  const currentPage = Math.max(1, parseInt(pageParam ?? "1", 10) || 1);
+  const offset = (currentPage - 1) * PAGE_SIZE;
+
+  const [policies, totalCount, userCanUpdatePolicies, userCanVotePolicies] = await Promise.all([
+    getAllPolicies({ gameId, userId, offset, limit: PAGE_SIZE }),
+    countAllPolicies({ gameId }),
+    hasPermission("policies:update"),
+    hasPermission("policies:vote"),
+  ]);
+
   return (
-    <>
-      <h1 className="text-3xl font-bold mb-4">Rule Policies</h1>
-    </>
-  )
+    <div className="container mx-auto p-6">
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-3xl font-bold">Rule Policies — {game.name}</h1>
+        {userCanUpdatePolicies && <AddPolicyDialog gameId={gameId} gameSlug={gameSlug} />}
+      </div>
+
+      <PoliciesClientView
+        initialPolicies={policies}
+        initialTotalCount={totalCount}
+        initialPage={currentPage}
+        pageSize={PAGE_SIZE}
+        gameId={gameId}
+        gameSlug={gameSlug}
+        userCanUpdatePolicies={userCanUpdatePolicies}
+        userCanVotePolicies={userCanVotePolicies}
+      />
+    </div>
+  );
 }
