@@ -16,20 +16,37 @@ import ReactMarkdown from "react-markdown";
 import DeleteErrataButton from "@/components/DeleteErrataButton";
 import EditErrataDialog from "@/components/EditErrataDialog";
 import ErrataVoteButtons from "@/components/ErrataVoteButtons";
-import { Search, ArrowUpDown } from "lucide-react";
+import { Search, ArrowUpDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
 
 export default function ErratasClientView({
   erratas,
   userCanUpdateErratas,
   userCanVoteErratas,
+  currentPage,
+  totalPages,
+  totalCount,
+  pageSize,
 }: {
   erratas: Errata[];
   userCanUpdateErratas: boolean;
   userCanVoteErratas: boolean;
+  currentPage: number;
+  totalPages: number;
+  totalCount: number;
+  pageSize: number;
 }) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<ErrataType | "all">("all");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+
+  const goToPage = (page: number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("page", String(page));
+    router.push(`?${params.toString()}`);
+  };
 
   const filteredAndSortedErratas = useMemo(() => {
     let result = erratas;
@@ -230,6 +247,59 @@ export default function ErratasClientView({
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="mt-8 flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            Page {currentPage} sur {totalPages} — {totalCount} résultat{totalCount > 1 ? "s" : ""}
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => goToPage(currentPage - 1)}
+              disabled={currentPage <= 1}
+            >
+              <ChevronLeft className="h-4 w-4" />
+              Précédent
+            </Button>
+
+            {/* Numéros de pages */}
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .filter((p) => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 2)
+              .reduce<(number | "…")[]>((acc, p, idx, arr) => {
+                if (idx > 0 && p - (arr[idx - 1] as number) > 1) acc.push("…");
+                acc.push(p);
+                return acc;
+              }, [])
+              .map((item, idx) =>
+                item === "…" ? (
+                  <span key={`ellipsis-${idx}`} className="px-2 text-muted-foreground">…</span>
+                ) : (
+                  <Button
+                    key={item}
+                    variant={item === currentPage ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => goToPage(item as number)}
+                  >
+                    {item}
+                  </Button>
+                )
+              )}
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => goToPage(currentPage + 1)}
+              disabled={currentPage >= totalPages}
+            >
+              Suivant
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       )}
     </>

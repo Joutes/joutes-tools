@@ -50,6 +50,10 @@ export async function getErratasByCardId(cardId: string, userId?: string): Promi
   }));
 }
 
+export async function countAllErratas(): Promise<number> {
+  return db.collection<ErrataDb>("erratas").countDocuments();
+}
+
 export async function getAllErratas({ offset = 0, limit = 50, userId }: { offset?: number; limit?: number; userId?: string }): Promise<Errata[]> {
   const erratasDb = await db
     .collection<ErrataDb>("erratas")

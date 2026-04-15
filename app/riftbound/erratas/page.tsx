@@ -1,15 +1,31 @@
-import { getAllErratas } from "@/lib/data/erratas";
+import { getAllErratas, countAllErratas } from "@/lib/data/erratas";
 import AddErrataDialog from "./AddErrataDialog";
 import ErratasClientView from "./ErratasClientView";
 import { hasPermission } from "@/lib/permissions";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 
-export default async function RiftboundErratasPage() {
+const PAGE_SIZE = 20;
+
+export default async function RiftboundErratasPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
   const session = await auth.api.getSession({ headers: await headers() });
   const userId = session?.user?.id;
 
-  const erratas = await getAllErratas({ userId, offset: 0, limit: 50 });
+  const { page: pageParam } = await searchParams;
+  const currentPage = Math.max(1, parseInt(pageParam ?? "1", 10) || 1);
+  const offset = (currentPage - 1) * PAGE_SIZE;
+
+  const [erratas, totalCount] = await Promise.all([
+    getAllErratas({ userId, offset, limit: PAGE_SIZE }),
+    countAllErratas(),
+  ]);
+
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+
   const userCanUpdateErratas = await hasPermission('erratas:update');
   const userCanVoteErratas = await hasPermission('erratas:vote');
 
@@ -24,6 +40,10 @@ export default async function RiftboundErratasPage() {
         erratas={erratas}
         userCanUpdateErratas={userCanUpdateErratas}
         userCanVoteErratas={userCanVoteErratas}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalCount={totalCount}
+        pageSize={PAGE_SIZE}
       />
     </div>
   );
