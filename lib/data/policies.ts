@@ -4,22 +4,19 @@ import db from "@/lib/mongodb";
 import { Policy, PolicyDb } from "@/lib/types/policies";
 import { ObjectId } from "bson";
 
-async function buildPolicyMatchFilter({
+function buildPolicyMatchFilter({
   gameId,
   search,
 }: {
   gameId: string;
   search?: string;
-}): Promise<Record<string, unknown>> {
+}): Record<string, unknown> {
   const filter: Record<string, unknown> = {
     gameId: new ObjectId(gameId),
   };
 
   if (search?.trim()) {
-    filter.$or = [
-      { title: { $regex: search.trim(), $options: "i" } },
-      { content: { $regex: search.trim(), $options: "i" } },
-    ];
+    filter.$text = { $search: search.trim() };
   }
 
   return filter;
@@ -32,7 +29,7 @@ export async function countAllPolicies({
   gameId: string;
   search?: string;
 }): Promise<number> {
-  const filter = await buildPolicyMatchFilter({ gameId, search });
+  const filter = buildPolicyMatchFilter({ gameId, search });
   return db.collection<PolicyDb>("policies").countDocuments(filter);
 }
 
@@ -51,43 +48,50 @@ export async function getAllPolicies({
   search?: string;
   sortOrder?: "asc" | "desc";
 }): Promise<Policy[]> {
-  const matchFilter = await buildPolicyMatchFilter({ gameId, search });
+  const matchFilter = buildPolicyMatchFilter({ gameId, search });
   const sortDir = sortOrder === "asc" ? 1 : -1;
+
+  // When a text search is active, sort by relevance score first
+  const sortStage: Record<string, unknown> = search?.trim()
+    ? { score: { $meta: "textScore" }, title: sortDir }
+    : { title: sortDir, createdAt: -1 };
+
+  const pipeline: object[] = [
+    { $match: matchFilter },
+    { $sort: sortStage },
+    { $skip: offset },
+    { $limit: limit },
+    {
+      $lookup: {
+        from: "policy-votes",
+        localField: "_id",
+        foreignField: "policyId",
+        as: "votesList",
+      },
+    },
+    {
+      $lookup: {
+        from: "games",
+        localField: "gameId",
+        foreignField: "_id",
+        as: "gameArr",
+        pipeline: [
+          { $limit: 1 },
+          { $project: { _id: 1, slug: 1, name: 1 } },
+        ],
+      },
+    },
+    {
+      $unwind: {
+        path: "$gameArr",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+  ];
 
   const policiesDb = await db
     .collection<PolicyDb>("policies")
-    .aggregate([
-      { $match: matchFilter },
-      { $sort: { title: sortDir as 1 | -1, createdAt: -1 } },
-      { $skip: offset },
-      { $limit: limit },
-      {
-        $lookup: {
-          from: "policy-votes",
-          localField: "_id",
-          foreignField: "policyId",
-          as: "votesList",
-        },
-      },
-      {
-        $lookup: {
-          from: "games",
-          localField: "gameId",
-          foreignField: "_id",
-          as: "gameArr",
-          pipeline: [
-            { $limit: 1 },
-            { $project: { _id: 1, slug: 1, name: 1 } },
-          ],
-        },
-      },
-      {
-        $unwind: {
-          path: "$gameArr",
-          preserveNullAndEmptyArrays: true,
-        },
-      },
-    ])
+    .aggregate(pipeline)
     .toArray();
 
   return policiesDb.map((p) => ({
