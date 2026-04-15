@@ -43,7 +43,7 @@ export default function ErratasClientView({
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<ErrataType | "all">("all");
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [isPending, startTransition] = useTransition();
 
   const searchTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -135,7 +135,7 @@ export default function ErratasClientView({
           {/* Bouton de tri */}
           <Button variant="outline" onClick={toggleSortOrder} className="w-full sm:w-auto">
             <ArrowUpDown className="h-4 w-4 mr-2" />
-            Date {sortOrder === "desc" ? "↓" : "↑"}
+            Nom {sortOrder === "asc" ? "A→Z" : "Z→A"}
           </Button>
         </div>
 

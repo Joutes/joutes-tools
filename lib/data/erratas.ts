@@ -88,7 +88,7 @@ export async function getAllErratas({
   userId,
   search,
   type,
-  sortOrder = "desc",
+  sortOrder = "asc",
 }: {
   offset?: number;
   limit?: number;
@@ -104,9 +104,6 @@ export async function getAllErratas({
     .collection<ErrataDb>("erratas")
     .aggregate([
       { $match: matchFilter },
-      { $sort: { errataDate: sortDir } },
-      { $skip: offset },
-      { $limit: limit },
       {
         $lookup: {
           from: 'cards',
@@ -125,6 +122,9 @@ export async function getAllErratas({
           preserveNullAndEmptyArrays: true,
         },
       },
+      { $sort: { "card.name": sortDir as 1 | -1, errataDate: -1 } },
+      { $skip: offset },
+      { $limit: limit },
       {
         $lookup: {
           from: 'errata-votes',

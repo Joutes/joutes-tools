@@ -13,7 +13,7 @@ import { Errata } from "@/lib/types/errata";
 export async function searchErratas({
   search,
   type,
-  sortOrder = "desc",
+  sortOrder = "asc",
   page = 1,
   pageSize = 20,
 }: {
