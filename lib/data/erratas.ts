@@ -1,7 +1,7 @@
 "use server";
 
 import db from "@/lib/mongodb";
-import { Errata, ErrataDb } from "@/lib/types/errata";
+import { Errata, ErrataDb, ErrataType } from "@/lib/types/errata";
 import { ObjectId } from "bson";
 
 export async function getErratasByCardId(cardId: string, userId?: string): Promise<Errata[]> {
@@ -50,25 +50,63 @@ export async function getErratasByCardId(cardId: string, userId?: string): Promi
   }));
 }
 
-export async function countAllErratas(): Promise<number> {
-  return db.collection<ErrataDb>("erratas").countDocuments();
+async function buildErrataMatchFilter({
+  search,
+  type,
+}: {
+  search?: string;
+  type?: ErrataType | "all";
+}): Promise<Record<string, unknown>> {
+  const filter: Record<string, unknown> = {};
+
+  if (type && type !== "all") {
+    filter.type = type;
+  }
+
+  if (search?.trim()) {
+    const matchingCards = await db
+      .collection("cards")
+      .find({ name: { $regex: search.trim(), $options: "i" } }, { projection: { id: 1 } })
+      .toArray();
+    filter.cardId = { $in: matchingCards.map((c) => c.id) };
+  }
+
+  return filter;
 }
 
-export async function getAllErratas({ offset = 0, limit = 50, userId }: { offset?: number; limit?: number; userId?: string }): Promise<Errata[]> {
+export async function countAllErratas({
+  search,
+  type,
+}: { search?: string; type?: ErrataType | "all" } = {}): Promise<number> {
+  const filter = await buildErrataMatchFilter({ search, type });
+  return db.collection<ErrataDb>("erratas").countDocuments(filter);
+}
+
+export async function getAllErratas({
+  offset = 0,
+  limit = 50,
+  userId,
+  search,
+  type,
+  sortOrder = "desc",
+}: {
+  offset?: number;
+  limit?: number;
+  userId?: string;
+  search?: string;
+  type?: ErrataType | "all";
+  sortOrder?: "asc" | "desc";
+}): Promise<Errata[]> {
+  const matchFilter = await buildErrataMatchFilter({ search, type });
+  const sortDir = sortOrder === "asc" ? 1 : -1;
+
   const erratasDb = await db
     .collection<ErrataDb>("erratas")
     .aggregate([
-      {
-        $sort: {
-          createdAt: -1,
-        }
-      },
-      {
-        $skip: offset,
-      },
-      {
-        $limit: limit,
-      },
+      { $match: matchFilter },
+      { $sort: { errataDate: sortDir } },
+      { $skip: offset },
+      { $limit: limit },
       {
         $lookup: {
           from: 'cards',
@@ -94,7 +132,7 @@ export async function getAllErratas({ offset = 0, limit = 50, userId }: { offset
           foreignField: 'errataId',
           as: 'votesList',
         },
-      }
+      },
     ])
     .toArray();
 

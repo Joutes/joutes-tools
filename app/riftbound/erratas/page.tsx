@@ -24,7 +24,6 @@ export default async function RiftboundErratasPage({
     countAllErratas(),
   ]);
 
-  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
   const userCanUpdateErratas = await hasPermission('erratas:update');
   const userCanVoteErratas = await hasPermission('erratas:vote');
@@ -37,12 +36,11 @@ export default async function RiftboundErratasPage({
       </div>
 
       <ErratasClientView
-        erratas={erratas}
+        initialErratas={erratas}
         userCanUpdateErratas={userCanUpdateErratas}
         userCanVoteErratas={userCanVoteErratas}
-        currentPage={currentPage}
-        totalPages={totalPages}
-        totalCount={totalCount}
+        initialPage={currentPage}
+        initialTotalCount={totalCount}
         pageSize={PAGE_SIZE}
       />
     </div>

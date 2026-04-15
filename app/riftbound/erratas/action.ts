@@ -7,6 +7,36 @@ import db from "@/lib/mongodb";
 import { ErrataDb, ErrataType, ErrataVoteDb, ErrataVoteType } from "@/lib/types/errata";
 import { ObjectId } from "bson";
 import { requirePermission } from "@/lib/permissions";
+import { getAllErratas, countAllErratas } from "@/lib/data/erratas";
+import { Errata } from "@/lib/types/errata";
+
+export async function searchErratas({
+  search,
+  type,
+  sortOrder = "desc",
+  page = 1,
+  pageSize = 20,
+}: {
+  search?: string;
+  type?: ErrataType | "all";
+  sortOrder?: "asc" | "desc";
+  page?: number;
+  pageSize?: number;
+}): Promise<{ erratas: Errata[]; totalCount: number }> {
+  const session = await auth.api.getSession({ headers: await headers() });
+  const userId = session?.user?.id;
+
+  const offset = (page - 1) * pageSize;
+
+  const [erratas, totalCount] = await Promise.all([
+    getAllErratas({ offset, limit: pageSize, userId, search, type, sortOrder }),
+    countAllErratas({ search, type }),
+  ]);
+
+  return { erratas, totalCount };
+}
+
+
 
 export async function createErrata(data: {
   cardId: string;
