@@ -2,6 +2,13 @@
 
 import useGame from "@/hooks/use-game";
 import { useEffect } from "react";
+import {
+    Breadcrumb,
+    BreadcrumbItem,
+    BreadcrumbLink,
+    BreadcrumbList,
+    BreadcrumbSeparator
+} from "@/components/ui/breadcrumb";
 
 export default function SWULayout({ children }: { children: React.ReactNode }) {
     const gameContext = useGame();
@@ -18,8 +25,19 @@ export default function SWULayout({ children }: { children: React.ReactNode }) {
     }, [gameContext.game?.slug]);
 
     return (
-        <>
-            {children}
-        </>
+      <>
+          <Breadcrumb>
+              <BreadcrumbList>
+                  <BreadcrumbItem>
+                      <BreadcrumbLink href="/">Home</BreadcrumbLink>
+                  </BreadcrumbItem>
+                  <BreadcrumbSeparator />
+                  <BreadcrumbItem>
+                      <BreadcrumbLink href="/swu">Star Wars Unlimited</BreadcrumbLink>
+                  </BreadcrumbItem>
+              </BreadcrumbList>
+          </Breadcrumb>
+          {children}
+      </>
     )
 }
