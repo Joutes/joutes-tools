@@ -1,4 +1,5 @@
 import {ObjectId} from "bson";
+import {Game} from "@/lib/types/game";
 
 export type PolicyVoteType = "positive" | "negative";
 
@@ -6,6 +7,9 @@ export type Policy = {
   id: string;
   title: string;
   content: string;
+
+  gameId: string;
+  game?: Pick<Game, 'id' | 'slug' | 'name'>
 
   source?: string;
 
@@ -21,6 +25,7 @@ export type Policy = {
 };
 
 export type PolicyDb = {
+  gameId: ObjectId;
   title: string;
   content: string;
   source?: string;
