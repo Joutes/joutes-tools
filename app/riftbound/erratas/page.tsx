@@ -9,7 +9,7 @@ export default async function RiftboundErratasPage() {
   const session = await auth.api.getSession({ headers: await headers() });
   const userId = session?.user?.id;
 
-  const erratas = await getAllErratas(userId);
+  const erratas = await getAllErratas({ userId, offset: 0, limit: 50 });
   const userCanUpdateErratas = await hasPermission('erratas:update');
   const userCanVoteErratas = await hasPermission('erratas:vote');
 

@@ -50,10 +50,21 @@ export async function getErratasByCardId(cardId: string, userId?: string): Promi
   }));
 }
 
-export async function getAllErratas(userId?: string): Promise<Errata[]> {
+export async function getAllErratas({ offset = 0, limit = 50, userId }: { offset?: number; limit?: number; userId?: string }): Promise<Errata[]> {
   const erratasDb = await db
     .collection<ErrataDb>("erratas")
     .aggregate([
+      {
+        $sort: {
+          createdAt: -1,
+        }
+      },
+      {
+        $skip: offset,
+      },
+      {
+        $limit: limit,
+      },
       {
         $lookup: {
           from: 'cards',
@@ -79,11 +90,6 @@ export async function getAllErratas(userId?: string): Promise<Errata[]> {
           foreignField: 'errataId',
           as: 'votesList',
         },
-      },
-      {
-        $sort: {
-          createdAt: -1,
-        }
       }
     ])
     .toArray();
