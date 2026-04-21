@@ -30,12 +30,14 @@ export async function generateMetadata({
     };
   }
 
+  const erratas = await getErratasByCardId(cardId);
+
   return {
-    title: `${card.name} - Détails et erratas officiels`,
-    description: `Découvrez les détails de ${card.name}, y compris les erratas officiels et les clarifications de la communauté.`,
+    title: `${card.name} - Details, official erratas and community rulings`,
+    description: `Discover details of ${card.name}, including official erratas and community rulings.\n\nThis card has ${erratas.length} errata and clarifications contributed by the community.${card.banned ? "\n\nThis card is currently banned." : ""}${erratas.length === 1 ? `\n\n${erratas[0].type} (${erratas[0].errataDate}):\n${erratas[0].details}` : ''}`,
     openGraph: {
-      title: `${card.name} - Détails et erratas officiels`,
-      description: `Découvrez les détails de ${card.name}, y compris les erratas officiels et les clarifications de la communauté.`,
+      title: `${card.name} - Details, official erratas and community rulings`,
+      description: `Discover details of ${card.name}, including official erratas and community rulings.\n\nThis card has ${erratas.length} errata and clarifications contributed by the community.${card.banned ? "\n\nThis card is currently banned." : ""}${erratas.length === 1 ? `\n\n${erratas[0].type} (${erratas[0].errataDate}):\n${erratas[0].details}` : ''}`,
       images: [card.image],
     },
   };
