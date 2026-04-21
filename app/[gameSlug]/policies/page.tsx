@@ -7,8 +7,34 @@ import { headers } from "next/headers";
 import db from "@/lib/mongodb";
 import { Game } from "@/lib/types/game";
 import { notFound } from "next/navigation";
+import { Metadata } from "next/types";
 
 const PAGE_SIZE = 20;
+
+export async function generateMetadata({
+  params
+}: {
+  params: Promise<{ gameSlug: string }>
+}): Promise<Metadata> {
+  const { gameSlug } = await params;
+  const game = await db.collection<Game>("games").findOne({ slug: gameSlug });
+
+  if (!game) {
+    return {
+      title: 'Jeu non trouvé',
+    };
+  }
+
+  return {
+    title: `Précis de règles et policies pour ${game.name}`,
+    description: `Explorez les règles et les policies pour ${game.name}.`,
+    openGraph: {
+      title: `Précis de règles et policies pour ${game.name}`,
+      description: `Explorez les règles et les policies pour ${game.name}.`,
+      images: game.banner ? [game.banner] : [],
+    },
+  };
+}
 
 export default async function GamePoliciesPage({
   params,

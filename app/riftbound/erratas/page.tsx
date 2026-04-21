@@ -7,6 +7,15 @@ import { headers } from "next/headers";
 
 const PAGE_SIZE = 20;
 
+export const metadata = {
+  title: 'Riftbound Erratas & Rulings',
+  description: 'Read official erratas and community rulings for Riftbound, helping you stay up-to-date with the latest clarifications and changes to the game.',
+  openGraph: {
+    title: 'Riftbound Erratas & Rulings',
+    description: 'Read official erratas and community rulings for Riftbound, helping you stay up-to-date with the latest clarifications and changes to the game.',
+  },
+};
+
 export default async function RiftboundErratasPage({
   searchParams,
 }: {

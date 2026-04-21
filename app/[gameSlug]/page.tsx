@@ -10,6 +10,7 @@ import {
   WatchIcon,
   ArrowRightIcon,
 } from "lucide-react";
+import { Metadata } from "next/types";
 
 type GameFeature = {
   title: string;
@@ -60,6 +61,31 @@ const gameFeatures: Record<string, GameFeature[]> = {
     },
   ],
 };
+
+export async function generateMetadata({
+  params
+}: {
+  params: Promise<{ gameSlug: string }>
+}): Promise<Metadata> {
+  const { gameSlug } = await params;
+  const game = await db.collection<Game>("games").findOne({ slug: gameSlug });
+
+  if (!game) {
+    return {
+      title: 'Jeu non trouvé',
+    };
+  }
+
+  return {
+    title: `Outils Joutes pour ${game.name}`,
+    description: `Découvrez les outils Joutes pour ${game.name}: ${gameFeatures[gameSlug]?.map(f => f.title).join(', ')}.`,
+    openGraph: {
+      title: `Outils Joutes pour ${game.name}`,
+      description: `Découvrez les outils Joutes pour ${game.name}: ${gameFeatures[gameSlug]?.map(f => f.title).join(', ')}.`,
+      images: game.banner ? [game.banner] : [],
+    },
+  };
+}
 
 export default async function GameMainPage({
   params,

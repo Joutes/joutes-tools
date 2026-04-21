@@ -12,6 +12,34 @@ import db from "@/lib/mongodb";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { hasPermission } from "@/lib/permissions";
+import { Metadata } from "next/types";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ cardId: string }>;
+}): Promise<Metadata> {
+  const { cardId } = await params;
+
+  // Récupérer les informations de la carte depuis MongoDB
+  const card = await db.collection<BoosterCard>("cards").findOne({ id: cardId });
+
+  if (!card) {
+    return {
+      title: 'Carte non trouvée',
+    };
+  }
+
+  return {
+    title: `${card.name} - Détails et erratas officiels`,
+    description: `Découvrez les détails de ${card.name}, y compris les erratas officiels et les clarifications de la communauté.`,
+    openGraph: {
+      title: `${card.name} - Détails et erratas officiels`,
+      description: `Découvrez les détails de ${card.name}, y compris les erratas officiels et les clarifications de la communauté.`,
+      images: [card.image],
+    },
+  };
+}
 
 export default async function RiftboundCardDetailPage({
   params,
