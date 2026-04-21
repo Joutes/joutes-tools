@@ -108,7 +108,9 @@ export function AuthExample() {
           <Button type="submit" disabled={loading} className="w-full">
             {loading ? "Envoi..." : "Envoyer le code"}
           </Button>
-          <Button className="w-full mt-8" onClick={async () => {
+          <Button className="w-full mt-8" onClick={async (event) => {
+            event?.preventDefault();
+
             const { data, error } = await authClient.signIn.passkey({
               fetchOptions: {
                 onSuccess(context) {
@@ -124,7 +126,9 @@ export function AuthExample() {
             <Key />
             PassKey/WebAuthN
           </Button>
-          <Button onClick={async () => {
+          <Button onClick={async (event) => {
+            event?.preventDefault();
+
             const { data, error } = await authClient.signIn.social({
               provider: "discord",
               fetchOptions: {

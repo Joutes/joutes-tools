@@ -1,5 +1,4 @@
 import { AuthExample } from "@/components/AuthExample";
-import { Suspense } from "react";
 
 export default function LoginPage() {
   return (
