@@ -18,10 +18,23 @@ async function handleSearchCard(params: {
 }
 
 const handler = createMcpHandler(server => {
-    server.tool("search_card", "Search for cards and their details, erratas and rulings.", {
-        gameName: z.string().optional(),
-        cardName: z.string(),
+    server.registerTool("search_card", {
+        title: "",
+        description: "Search for cards and their details, erratas and rulings.",
+        inputSchema: {
+            gameName: z.string().optional(),
+            cardName: z.string(),
+        },
     }, handleSearchCard);
+}, {
+    serverInfo: {
+        name: "Joutes Tools",
+        version: "1.0.0",
+    }
+}, {
+    basePath: '/mcp',
+    verboseLogs: true,
+    maxDuration: 60,
 });
 
-export { handler as GET, handler as POST };
+export { handler as GET, handler as POST, handler as DELETE };
