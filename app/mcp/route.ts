@@ -19,7 +19,7 @@ async function handleSearchCard(params: {
 
 const handler = createMcpHandler(server => {
     server.registerTool("search_card", {
-        title: "",
+        title: "Search cards",
         description: "Search for cards and their details, erratas and rulings.",
         inputSchema: {
             gameName: z.string().optional(),
