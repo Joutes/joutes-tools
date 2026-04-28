@@ -2,7 +2,6 @@ import { getErratasByCardId } from '@/lib/data/erratas';
 import db from '@/lib/mongodb';
 import { TextContent } from '@modelcontextprotocol/sdk/types.js';
 import { createMcpHandler } from 'mcp-handler';
-import { ObjectId } from 'mongodb';
 import { z } from 'zod/v3';
 
 async function handleSearchCard(params: {
@@ -43,7 +42,7 @@ async function handleSearchCard(params: {
       content: [
         {
             type: "text",
-            text: `You searched for card "${params.cardName}" in game "${params.gameName ?? "N/A"}".\n\nThis card has ${erratas.length} erratas.\n\nErratas details:\n${erratas.map((e, index) => `\n${index + 1}. Type: ${e.type}, Details: ${e.details}, Source: ${e.source}, Errata ID: ${e.id}`).join("\n")}`
+            text: `You searched for card "${params.cardName}" in game "${params.gameName ?? "N/A"}".${card.image ? `\n\n![${card.name}](${card.image})` : ""}\n\nThis card has ${erratas.length} erratas.\n\nErratas details:\n${erratas.map((e, index) => `\n${index + 1}. Type: ${e.type}, Details: ${e.details}, Source: ${e.source}, Errata ID: ${e.id}`).join("\n")}`
         }
       ],
       isError: false,
