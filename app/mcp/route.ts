@@ -23,7 +23,7 @@ async function handleSearchCard(params: {
         };
     }
 
-    const card = await db.collection("cards").findOne({ name: params.cardName, game: game?._id });
+    const card = await db.collection("cards").findOne({ name: params.cardName, gameId: game._id });
 
     if (!card) {
         return {
