@@ -8,21 +8,24 @@ async function handleSearchCard(params: {
     gameName?: string;
     cardName: string;
 }): Promise<{ content: TextContent[]; isError?: boolean }> {
-    const game = await db.collection("games").findOne({ $or: [{ name: params.gameName }, { slug: params.gameName }] });
+    let game;
+    if (params.gameName) {
+        game = await db.collection("games").findOne({ $or: [{ name: params.gameName }, { slug: params.gameName }] });
 
-    if (!game) {
-        return {
-            content: [
-                {
-                    type: "text",
-                    text: `No game found with name "${params.gameName ?? "N/A"}".`
-                }
-            ],
-            isError: false,
-        };
+        if (!game) {
+            return {
+                content: [
+                    {
+                        type: "text",
+                        text: `No game found with name "${params.gameName ?? "N/A"}".`
+                    }
+                ],
+                isError: false,
+            };
+        }
     }
 
-    const card = await db.collection("cards").findOne({ name: params.cardName, gameId: game._id });
+    const card = await db.collection("cards").findOne({ name: params.cardName, gameId: game?._id });
 
     if (!card) {
         return {
