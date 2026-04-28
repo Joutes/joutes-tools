@@ -1,4 +1,5 @@
 import { getErratasByCardId } from '@/lib/data/erratas';
+import { getAllPolicies } from '@/lib/data/policies';
 import db from '@/lib/mongodb';
 import { TextContent } from '@modelcontextprotocol/sdk/types.js';
 import { createMcpHandler } from 'mcp-handler';
@@ -67,6 +68,42 @@ async function handleVoteErrata(params: {
     };
 }
 
+async function handleSearchRules(params: {
+    gameName: string;
+    query: string;
+}): Promise<{ content: TextContent[]; isError?: boolean }> {
+    const game = await db.collection("games").findOne({ $or: [{ name: params.gameName }, { slug: params.gameName }] });
+
+        if (!game) {
+            return {
+                content: [
+                    {
+                        type: "text",
+                        text: `No game found with name "${params.gameName ?? "N/A"}".`
+                    }
+                ],
+                isError: false,
+            };
+        }
+
+    const results = await getAllPolicies({
+        gameId: game._id.toString(),
+        offset: 0,
+        limit: 3,
+        search: params.query,
+    });
+
+    return {
+        content: [
+            {
+                type: "text",
+                text: `You searched for rules in game "${params.gameName ?? "N/A"}" with query "${params.query}".\n\nFound ${results.length} policies.\n\nPolicies details:\n${results.map((p, index) => `\n${index + 1}. Title: ${p.title}, Content: ${p.content}, Source: ${p.source}, Policy ID: ${p.id}`).join("\n")}`
+            },
+        ],
+        isError: false,
+    };
+}
+
 const handler = createMcpHandler(server => {
     server.registerTool("search_card", {
         title: "Search cards",
@@ -76,6 +113,14 @@ const handler = createMcpHandler(server => {
             cardName: z.string(),
         },
     }, handleSearchCard);
+    server.registerTool("search_rules", {
+        title: "Search rules and policies",
+        description: "Search for rules, policies, tournament regulation, keywords...",
+        inputSchema: {
+            gameName: z.string(),
+            query: z.string(),
+        },
+    }, handleSearchRules);
     server.registerTool("vote_errata", {
         title: "Vote on errata",
         description: "Vote on the correctness of card erratas or rulings.",
