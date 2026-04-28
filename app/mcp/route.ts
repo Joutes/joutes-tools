@@ -32,7 +32,7 @@ const handler = createMcpHandler(server => {
         version: "1.0.0",
     }
 }, {
-    basePath: '/',
+    basePath: '',
     verboseLogs: true,
     maxDuration: 60,
 });
