@@ -4,6 +4,8 @@ import db from '@/lib/mongodb';
 import { TextContent } from '@modelcontextprotocol/sdk/types.js';
 import { createMcpHandler } from 'mcp-handler';
 import { z } from 'zod/v3';
+import cr from "@/data/riftbound/cr.json"
+import tr from "@/data/riftbound/tr.json"
 
 async function handleSearchCard(params: {
     gameName?: string;
@@ -104,6 +106,54 @@ async function handleSearchRules(params: {
     };
 }
 
+async function handleGetRule(params: {
+    gameName: string;
+    id: string;
+}): Promise<{ content: TextContent[]; isError?: boolean }> {
+    const game = await db.collection("games").findOne({ $or: [{ name: params.gameName }, { slug: params.gameName }] });
+
+    if (!game) {
+        return {
+            content: [
+                {
+                    type: "text",
+                    text: `No game found with name "${params.gameName ?? "N/A"}".`
+                }
+            ],
+            isError: false,
+        };
+    }
+
+    let rule: string | undefined;
+    if (params.id.startsWith("TR")) {
+        rule = tr.find(r => r.id === params.id.replace("TR", ""))?.content;
+    } else {
+        rule = cr.find(r => r.id === params.id.replace("CR", ""))?.content;
+    }
+
+    if (!rule) {
+        return {
+            content: [
+                {
+                    type: "text",
+                    text: `No rule found with ID "${params.id}" in game "${params.gameName ?? "N/A"}".`
+                }
+            ],
+            isError: false,
+        };
+    }
+
+    return {
+        content: [
+            {
+                type: "text",
+                text: `You searched for rule with ID "${params.id}" in game "${params.gameName ?? "N/A"}".\n\nRule details:\n${rule}`,
+            },
+        ],
+        isError: false,
+    };
+}
+
 const handler = createMcpHandler(server => {
     server.registerTool("search_card", {
         title: "Search cards",
@@ -129,6 +179,14 @@ const handler = createMcpHandler(server => {
             vote: z.enum(["upvote", "downvote"]),
         },
     }, handleVoteErrata);
+    server.registerTool("get_rule", {
+        title: "Get rule by ID",
+        description: "Get the content of a tournament rule (TR) or core rule (CR) by its ID.",
+        inputSchema: {
+            gameName: z.string().describe("Name of the game"),
+            id: z.string().describe("ID of the rule. Prefix by type. Example: TR509.4.c.1"),
+        },
+    }, handleGetRule);
 }, {
     serverInfo: {
         name: "Joutes Tools",
