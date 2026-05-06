@@ -32,6 +32,11 @@ const gamesMenus: { [slug: string]: {
             icon: FileTextIcon,
         },
         {
+            title: "Tournament Rules",
+            url: "/riftbound/rules/tr",
+            icon: FileTextIcon,
+        },
+        {
             title: "Deck Checker",
             url: "/riftbound/deck-checker",
             icon: ScanIcon,
