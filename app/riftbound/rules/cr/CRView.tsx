@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
+import { useMemo, useState, useEffect, useRef, useCallback, memo } from 'react';
 import { Input } from '@/components/ui/input';
 import { Link2Icon, CheckIcon } from 'lucide-react';
 
@@ -87,15 +87,23 @@ function getSections(roots: CRNode[]): { label: string; start: number; anchorId:
   return [...sections.values()].sort((a, b) => a.start - b.start);
 }
 
-// Build a map of title text -> anchor id for hyperlinking
-function buildTitleMap(entries: CREntry[]): Map<string, string> {
+// Pre-built title data: map + compiled regex (built once, not per render)
+interface TitleData {
+  map: Map<string, string>;
+  regexSource: string; // stored as source so each call creates a stateless instance
+}
+
+function buildTitleData(entries: CREntry[]): TitleData {
   const map = new Map<string, string>();
   for (const entry of entries) {
     if (isTitle(entry)) {
       map.set(entry.content, `rule-${entry.id}`);
     }
   }
-  return map;
+  const sortedTitles = [...map.keys()].sort((a, b) => b.length - a.length);
+  const escaped = sortedTitles.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  const regexSource = `(${escaped.join('|')})`;
+  return { map, regexSource };
 }
 
 // Debounce hook
@@ -133,18 +141,15 @@ function highlightText(text: string, query: string): React.ReactNode[] {
 // then highlight search query within the produced text nodes
 function renderTextWithLinks(
   text: string,
-  titleMap: Map<string, string>,
+  titleData: TitleData,
   currentId: string,
   searchQuery: string = '',
 ): React.ReactNode[] {
-  if (titleMap.size === 0) return [text];
+  if (!titleData.regexSource) return highlightText(text, searchQuery);
 
-  // Sort titles by length descending to match longer titles first
-  const sortedTitles = [...titleMap.entries()].sort((a, b) => b[0].length - a[0].length);
-
-  // Build a regex from all title texts (escaped), case-sensitive
-  const escaped = sortedTitles.map(([t]) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
-  const regex = new RegExp(`(${escaped.join('|')})`, 'g');
+  // Create a fresh regex instance (RegExp is stateful via lastIndex)
+  const regex = new RegExp(titleData.regexSource, 'g');
+  const { map: titleMap } = titleData;
 
   const parts: React.ReactNode[] = [];
   let lastIndex = 0;
@@ -229,16 +234,16 @@ const depthStyles: Record<number, string> = {
   6: 'ml-16 sm:ml-24',
 };
 
-function RuleNode({
+const RuleNode = memo(function RuleNode({
   node,
-  titleMap,
+  titleData,
   searchQuery,
 }: {
   node: CRNode;
-  titleMap: Map<string, string>;
+  titleData: TitleData;
   searchQuery: string;
 }) {
-  const contentNodes = renderTextWithLinks(node.content, titleMap, node.id, searchQuery);
+  const contentNodes = renderTextWithLinks(node.content, titleData, node.id, searchQuery);
   const indent = depthStyles[node.depth] || 'ml-16';
 
   const isVisible =
@@ -265,7 +270,7 @@ function RuleNode({
         {node.children.length > 0 && (
           <div className="space-y-1">
             {node.children.map(child => (
-              <RuleNode key={child.id} node={child} titleMap={titleMap} searchQuery={searchQuery} />
+              <RuleNode key={child.id} node={child} titleData={titleData} searchQuery={searchQuery} />
             ))}
           </div>
         )}
@@ -290,13 +295,13 @@ function RuleNode({
       {node.children.length > 0 && (
         <div className="mt-0.5">
           {node.children.map(child => (
-            <RuleNode key={child.id} node={child} titleMap={titleMap} searchQuery={searchQuery} />
+            <RuleNode key={child.id} node={child} titleData={titleData} searchQuery={searchQuery} />
           ))}
         </div>
       )}
     </div>
   );
-}
+});
 
 function TableOfContents({
   sections,
@@ -361,7 +366,7 @@ export default function CRView({ entries }: { entries: CREntry[] }) {
 
   const tree = useMemo(() => buildTree(entries), [entries]);
   const sections = useMemo(() => getSections(tree), [tree]);
-  const titleMap = useMemo(() => buildTitleMap(entries), [entries]);
+  const titleData = useMemo(() => buildTitleData(entries), [entries]);
 
   // Intersection observer to track active section
   useEffect(() => {
@@ -447,7 +452,7 @@ export default function CRView({ entries }: { entries: CREntry[] }) {
                 <RuleNode
                   key={node.id}
                   node={node}
-                  titleMap={titleMap}
+                  titleData={titleData}
                   searchQuery={debouncedQuery}
                 />
               ))}
