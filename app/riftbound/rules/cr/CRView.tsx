@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useEffect, useRef, useCallback, memo } from 'react';
 import { Input } from '@/components/ui/input';
-import { Link2Icon, CheckIcon } from 'lucide-react';
+import { Link2Icon, CheckIcon, ChevronDownIcon } from 'lucide-react';
 
 export interface CREntry {
   id: string;
@@ -243,8 +243,12 @@ const RuleNode = memo(function RuleNode({
   titleData: TitleData;
   searchQuery: string;
 }) {
+  const [isOpen, setIsOpen] = useState(true);
   const contentNodes = renderTextWithLinks(node.content, titleData, node.id, searchQuery);
   const indent = depthStyles[node.depth] || 'ml-16';
+
+  // Auto-expand when a search is active so matches are always visible
+  const effectivelyOpen = searchQuery ? true : isOpen;
 
   const isVisible =
     !searchQuery ||
@@ -262,12 +266,22 @@ const RuleNode = memo(function RuleNode({
   if (node.isTitle && node.depth === 1) {
     return (
       <div id={`rule-${node.id}`} className={`mt-6 scroll-mt-20 group ${indent}`}>
-        <h2 className="text-xl font-bold text-primary border-b border-border pb-1 mb-2 flex items-center gap-2">
-          <span className="text-muted-foreground text-base font-mono mr-2">{node.id}.</span>
+        <h2 className="text-xl font-bold text-primary border-b border-border pb-1 mb-2 flex items-center gap-1">
+          <button
+            onClick={() => setIsOpen(v => !v)}
+            aria-label={isOpen ? 'Réduire la section' : 'Développer la section'}
+            className="shrink-0 p-0.5 rounded hover:bg-accent transition-colors text-muted-foreground hover:text-foreground"
+          >
+            <ChevronDownIcon
+              size={18}
+              className={`transition-transform duration-200 ${effectivelyOpen ? '' : '-rotate-90'}`}
+            />
+          </button>
+          <span className="text-muted-foreground text-base font-mono mr-1">{node.id}.</span>
           {node.content}
           <CopyLinkButton anchorId={`rule-${node.id}`} />
         </h2>
-        {node.children.length > 0 && (
+        {effectivelyOpen && node.children.length > 0 && (
           <div className="space-y-1">
             {node.children.map(child => (
               <RuleNode key={child.id} node={child} titleData={titleData} searchQuery={searchQuery} />
@@ -310,6 +324,15 @@ function TableOfContents({
   sections: { label: string; start: number; anchorId: string; nodes: CRNode[] }[];
   activeSection: number | null;
 }) {
+  const [collapsed, setCollapsed] = useState<Set<number>>(new Set());
+
+  const toggle = (start: number) =>
+    setCollapsed(prev => {
+      const next = new Set(prev);
+      next.has(start) ? next.delete(start) : next.add(start);
+      return next;
+    });
+
   return (
     <nav className="text-sm space-y-0.5">
       <p className="font-semibold text-xs uppercase tracking-wider text-muted-foreground mb-2 px-2">
@@ -317,25 +340,40 @@ function TableOfContents({
       </p>
       {sections.map(sec => {
         const titleNodes = sec.nodes.filter(n => n.isTitle && n.depth === 1);
+        const subItems = titleNodes.filter(n => parseInt(n.id) !== sec.start);
+        const isCollapsed = collapsed.has(sec.start);
         return (
           <div key={sec.start}>
-            <a
-              href={`#${sec.anchorId}`}
-              onClick={(e) => {
-                e.preventDefault();
-                window.history.pushState(null, '', `#${sec.anchorId}`);
-                document.getElementById(sec.anchorId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-              }}
-              className={`block px-2 py-1 rounded hover:bg-accent hover:text-accent-foreground transition-colors font-medium ${
-                activeSection === sec.start ? 'bg-accent text-accent-foreground' : 'text-foreground'
-              }`}
-            >
-              {sec.start > 0 ? `${sec.start}–` : ''} {sec.label}
-            </a>
-            <div className="ml-3 space-y-0.5">
-              {titleNodes
-                .filter(n => parseInt(n.id) !== sec.start)
-                .map(n => (
+            <div className={`flex items-center rounded transition-colors ${activeSection === sec.start ? 'bg-accent' : ''}`}>
+              {subItems.length > 0 && (
+                <button
+                  onClick={() => toggle(sec.start)}
+                  aria-label={isCollapsed ? 'Développer' : 'Réduire'}
+                  className="p-1 shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <ChevronDownIcon
+                    size={13}
+                    className={`transition-transform duration-200 ${isCollapsed ? '-rotate-90' : ''}`}
+                  />
+                </button>
+              )}
+              <a
+                href={`#${sec.anchorId}`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  window.history.pushState(null, '', `#${sec.anchorId}`);
+                  document.getElementById(sec.anchorId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }}
+                className={`flex-1 px-2 py-1 rounded hover:bg-accent hover:text-accent-foreground transition-colors font-medium ${
+                  subItems.length === 0 ? 'ml-0' : ''
+                } ${activeSection === sec.start ? 'text-accent-foreground' : 'text-foreground'}`}
+              >
+                {sec.start > 0 ? `${sec.start}–` : ''} {sec.label}
+              </a>
+            </div>
+            {!isCollapsed && subItems.length > 0 && (
+              <div className="ml-6 space-y-0.5">
+                {subItems.map(n => (
                   <a
                     key={n.id}
                     href={`#rule-${n.id}`}
@@ -349,7 +387,8 @@ function TableOfContents({
                     <span className="font-mono mr-1">{n.id}</span>{n.content}
                   </a>
                 ))}
-            </div>
+              </div>
+            )}
           </div>
         );
       })}
