@@ -1,0 +1,391 @@
+'use client';
+
+import { useMemo, useState, useEffect, useRef } from 'react';
+import { Input } from '@/components/ui/input';
+
+export interface CREntry {
+  id: string;
+  content: string;
+}
+
+interface CRNode extends CREntry {
+  children: CRNode[];
+  depth: number;
+  isTitle: boolean;
+}
+
+// Determine depth from an ID string
+function getDepth(id: string): number {
+  return id.split('.').length;
+}
+
+// Determine if an entry is a "title" (section header)
+function isTitle(entry: CREntry): boolean {
+  return /^\d{3}$/.test(entry.id) && entry.content.length <= 60;
+}
+
+// Build a hierarchical tree from flat entries
+function buildTree(entries: CREntry[]): CRNode[] {
+  const nodeMap = new Map<string, CRNode>();
+  const roots: CRNode[] = [];
+
+  for (const entry of entries) {
+    const node: CRNode = {
+      ...entry,
+      children: [],
+      depth: getDepth(entry.id),
+      isTitle: isTitle(entry),
+    };
+    nodeMap.set(entry.id, node);
+
+    const parts = entry.id.split('.');
+    if (parts.length === 1) {
+      roots.push(node);
+    } else {
+      const parentId = parts.slice(0, -1).join('.');
+      const parent = nodeMap.get(parentId);
+      if (parent) {
+        parent.children.push(node);
+      } else {
+        // Parent not found, add as root
+        roots.push(node);
+      }
+    }
+  }
+
+  return roots;
+}
+
+// Group top-level rules into major sections (by hundreds)
+function getSections(roots: CRNode[]): { label: string; start: number; anchorId: string; nodes: CRNode[] }[] {
+  const sections: Map<number, { label: string; start: number; anchorId: string; nodes: CRNode[] }> = new Map();
+
+  for (const node of roots) {
+    const num = parseInt(node.id);
+    const hundred = Math.floor(num / 100) * 100;
+    if (!sections.has(hundred)) {
+      sections.set(hundred, {
+        label: '',
+        start: hundred,
+        anchorId: '',
+        nodes: [],
+      });
+    }
+    sections.get(hundred)!.nodes.push(node);
+  }
+
+  // Resolve labels and anchor IDs
+  for (const [hundred, sec] of sections) {
+    const exactTitle = sec.nodes.find(n => parseInt(n.id) === hundred && n.isTitle);
+    const firstTitle = sec.nodes.find(n => n.isTitle);
+    const titleNode = exactTitle || firstTitle || sec.nodes[0];
+    sec.label = titleNode.content;
+    sec.anchorId = `rule-${titleNode.id.padStart(3, '0')}`;
+  }
+
+  return [...sections.values()].sort((a, b) => a.start - b.start);
+}
+
+// Build a map of title text -> anchor id for hyperlinking
+function buildTitleMap(entries: CREntry[]): Map<string, string> {
+  const map = new Map<string, string>();
+  for (const entry of entries) {
+    if (isTitle(entry)) {
+      map.set(entry.content, `rule-${entry.id}`);
+    }
+  }
+  return map;
+}
+
+// Replace title occurrences in text with hyperlinks, respecting case
+function renderTextWithLinks(
+  text: string,
+  titleMap: Map<string, string>,
+  currentId: string
+): React.ReactNode[] {
+  if (titleMap.size === 0) return [text];
+
+  // Sort titles by length descending to match longer titles first
+  const sortedTitles = [...titleMap.entries()].sort((a, b) => b[0].length - a[0].length);
+
+  // Build a regex from all title texts (escaped), case-sensitive
+  const escaped = sortedTitles.map(([t]) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  const regex = new RegExp(`(${escaped.join('|')})`, 'g');
+
+  const parts: React.ReactNode[] = [];
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  regex.lastIndex = 0;
+  while ((match = regex.exec(text)) !== null) {
+    const matchedTitle = match[1];
+    const targetId = titleMap.get(matchedTitle);
+
+    if (match.index > lastIndex) {
+      parts.push(text.slice(lastIndex, match.index));
+    }
+
+    // Don't self-link
+    if (targetId && targetId !== `rule-${currentId}`) {
+      parts.push(
+        <a
+          key={`${currentId}-link-${match.index}`}
+          href={`#${targetId}`}
+          className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
+          onClick={(e) => {
+            e.preventDefault();
+            document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }}
+        >
+          {matchedTitle}
+        </a>
+      );
+    } else {
+      parts.push(matchedTitle);
+    }
+
+    lastIndex = match.index + matchedTitle.length;
+  }
+
+  if (lastIndex < text.length) {
+    parts.push(text.slice(lastIndex));
+  }
+
+  return parts.length > 0 ? parts : [text];
+}
+
+// Tailwind indentation classes per depth
+const depthStyles: Record<number, string> = {
+  1: '',
+  2: 'ml-4 sm:ml-6',
+  3: 'ml-8 sm:ml-12',
+  4: 'ml-12 sm:ml-16',
+  5: 'ml-14 sm:ml-20',
+  6: 'ml-16 sm:ml-24',
+};
+
+function RuleNode({
+  node,
+  titleMap,
+  searchQuery,
+}: {
+  node: CRNode;
+  titleMap: Map<string, string>;
+  searchQuery: string;
+}) {
+  const contentNodes = renderTextWithLinks(node.content, titleMap, node.id);
+  const indent = depthStyles[node.depth] || 'ml-16';
+
+  const isVisible =
+    !searchQuery ||
+    node.id.includes(searchQuery) ||
+    node.content.toLowerCase().includes(searchQuery.toLowerCase());
+
+  const hasMatchingChild = (n: CRNode): boolean => {
+    if (!searchQuery) return true;
+    if (n.id.includes(searchQuery) || n.content.toLowerCase().includes(searchQuery.toLowerCase())) return true;
+    return n.children.some(hasMatchingChild);
+  };
+
+  if (searchQuery && !hasMatchingChild(node)) return null;
+
+  if (node.isTitle && node.depth === 1) {
+    return (
+      <div id={`rule-${node.id}`} className={`mt-6 scroll-mt-20 ${indent}`}>
+        <h2 className="text-xl font-bold text-primary border-b border-border pb-1 mb-2">
+          <span className="text-muted-foreground text-base font-mono mr-2">{node.id}.</span>
+          {node.content}
+        </h2>
+        {node.children.length > 0 && (
+          <div className="space-y-1">
+            {node.children.map(child => (
+              <RuleNode key={child.id} node={child} titleMap={titleMap} searchQuery={searchQuery} />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div
+      id={`rule-${node.id}`}
+      className={`scroll-mt-20 py-0.5 ${indent} ${!isVisible && searchQuery ? 'opacity-30' : ''}`}
+    >
+      <div className="flex gap-2 text-sm leading-relaxed">
+        <span className="text-muted-foreground font-mono text-xs shrink-0 mt-0.5 min-w-14 text-right">
+          {node.id}
+        </span>
+        <p className={`flex-1 ${node.depth === 1 ? 'font-semibold text-foreground' : 'text-foreground/90'}`}>
+          {contentNodes}
+        </p>
+      </div>
+      {node.children.length > 0 && (
+        <div className="mt-0.5">
+          {node.children.map(child => (
+            <RuleNode key={child.id} node={child} titleMap={titleMap} searchQuery={searchQuery} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TableOfContents({
+  sections,
+  activeSection,
+}: {
+  sections: { label: string; start: number; anchorId: string; nodes: CRNode[] }[];
+  activeSection: number | null;
+}) {
+  return (
+    <nav className="text-sm space-y-0.5">
+      <p className="font-semibold text-xs uppercase tracking-wider text-muted-foreground mb-2 px-2">
+        Table des matières
+      </p>
+      {sections.map(sec => {
+        const titleNodes = sec.nodes.filter(n => n.isTitle && n.depth === 1);
+        return (
+          <div key={sec.start}>
+            <a
+              href={`#${sec.anchorId}`}
+              onClick={(e) => {
+                e.preventDefault();
+                document.getElementById(sec.anchorId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }}
+              className={`block px-2 py-1 rounded hover:bg-accent hover:text-accent-foreground transition-colors font-medium ${
+                activeSection === sec.start ? 'bg-accent text-accent-foreground' : 'text-foreground'
+              }`}
+            >
+              {sec.start > 0 ? `${sec.start}–` : ''} {sec.label}
+            </a>
+            <div className="ml-3 space-y-0.5">
+              {titleNodes
+                .filter(n => parseInt(n.id) !== sec.start)
+                .map(n => (
+                  <a
+                    key={n.id}
+                    href={`#rule-${n.id}`}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      document.getElementById(`rule-${n.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }}
+                    className="block px-2 py-0.5 rounded hover:bg-accent hover:text-foreground transition-colors text-muted-foreground text-xs"
+                  >
+                    <span className="font-mono mr-1">{n.id}</span>{n.content}
+                  </a>
+                ))}
+            </div>
+          </div>
+        );
+      })}
+    </nav>
+  );
+}
+
+export default function CRView({ entries }: { entries: CREntry[] }) {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeSection, setActiveSection] = useState<number | null>(null);
+  const [tocOpen, setTocOpen] = useState(false);
+  const mainRef = useRef<HTMLDivElement>(null);
+
+  const tree = useMemo(() => buildTree(entries), [entries]);
+  const sections = useMemo(() => getSections(tree), [tree]);
+  const titleMap = useMemo(() => buildTitleMap(entries), [entries]);
+
+  // Intersection observer to track active section
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            const id = entry.target.id;
+            const match = id.match(/^rule-(\d{3})$/);
+            if (match) {
+              const num = parseInt(match[1]);
+              setActiveSection(Math.floor(num / 100) * 100);
+            }
+          }
+        }
+      },
+      { rootMargin: '-20% 0px -70% 0px' }
+    );
+
+    // Observe all section anchors
+    sections.forEach(sec => {
+      const el = document.getElementById(sec.anchorId);
+      if (el) observer.observe(el);
+    });
+
+    return () => observer.disconnect();
+  }, [sections]);
+
+  const totalMatches = useMemo(() => {
+    if (!searchQuery) return null;
+    return entries.filter(
+      e =>
+        e.id.includes(searchQuery) ||
+        e.content.toLowerCase().includes(searchQuery.toLowerCase())
+    ).length;
+  }, [searchQuery, entries]);
+
+  return (
+    <div className="flex gap-6 relative">
+      {/* Sidebar TOC - Desktop */}
+      <aside className="hidden lg:block w-64 shrink-0">
+        <div className="sticky top-4 max-h-[calc(100vh-6rem)] overflow-y-auto pr-2 scrollbar-thin">
+          <TableOfContents sections={sections} activeSection={activeSection} />
+        </div>
+      </aside>
+
+      {/* Main content */}
+      <div className="flex-1 min-w-0">
+        {/* Search + Mobile TOC toggle */}
+        <div className="flex gap-2 mb-4 sticky top-0 z-10 bg-background pt-1 pb-2 border-b border-border">
+          <Input
+            type="search"
+            placeholder="Rechercher une règle (texte ou numéro)…"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="flex-1"
+          />
+          <button
+            className="lg:hidden px-3 py-2 rounded-md border border-border text-sm hover:bg-accent transition-colors"
+            onClick={() => setTocOpen(v => !v)}
+          >
+            {tocOpen ? '✕ Fermer' : '☰ Sommaire'}
+          </button>
+        </div>
+
+        {/* Mobile TOC */}
+        {tocOpen && (
+          <div className="lg:hidden bg-card border border-border rounded-lg p-4 mb-4 max-h-80 overflow-y-auto">
+            <TableOfContents sections={sections} activeSection={activeSection} />
+          </div>
+        )}
+
+        {searchQuery && (
+          <p className="text-sm text-muted-foreground mb-3">
+            {totalMatches} résultat{totalMatches !== 1 ? 's' : ''} pour &laquo;{searchQuery}&raquo;
+          </p>
+        )}
+
+        <div ref={mainRef} className="space-y-1">
+          {sections.map(sec => (
+            <div key={sec.start} className="mb-6">
+              {sec.nodes.map(node => (
+                <RuleNode
+                  key={node.id}
+                  node={node}
+                  titleMap={titleMap}
+                  searchQuery={searchQuery}
+                />
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
