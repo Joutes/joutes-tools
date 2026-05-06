@@ -97,11 +97,44 @@ function buildTitleMap(entries: CREntry[]): Map<string, string> {
   return map;
 }
 
-// Replace title occurrences in text with hyperlinks, respecting case
+// Debounce hook
+function useDebounce<T>(value: T, delay: number): T {
+  const [debounced, setDebounced] = useState<T>(value);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(timer);
+  }, [value, delay]);
+  return debounced;
+}
+
+// Highlight search term occurrences in a plain string (case-insensitive)
+function highlightText(text: string, query: string): React.ReactNode[] {
+  if (!query) return [text];
+  const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const regex = new RegExp(`(${escaped})`, 'gi');
+  const parts: React.ReactNode[] = [];
+  let last = 0;
+  let match: RegExpExecArray | null;
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > last) parts.push(text.slice(last, match.index));
+    parts.push(
+      <mark key={`hl-${match.index}`} className="bg-yellow-200 dark:bg-yellow-700 text-foreground rounded-sm px-0.5">
+        {match[1]}
+      </mark>
+    );
+    last = match.index + match[1].length;
+  }
+  if (last < text.length) parts.push(text.slice(last));
+  return parts.length > 0 ? parts : [text];
+}
+
+// Replace title occurrences in text with hyperlinks, respecting case,
+// then highlight search query within the produced text nodes
 function renderTextWithLinks(
   text: string,
   titleMap: Map<string, string>,
-  currentId: string
+  currentId: string,
+  searchQuery: string = '',
 ): React.ReactNode[] {
   if (titleMap.size === 0) return [text];
 
@@ -122,11 +155,15 @@ function renderTextWithLinks(
     const targetId = titleMap.get(matchedTitle);
 
     if (match.index > lastIndex) {
-      parts.push(text.slice(lastIndex, match.index));
+      const raw = text.slice(lastIndex, match.index);
+      parts.push(...highlightText(raw, searchQuery));
     }
 
-    // Don't self-link
     if (targetId && targetId !== `rule-${currentId}`) {
+      // Highlight inside the link text if it matches the search query
+      const linkContent = searchQuery
+        ? highlightText(matchedTitle, searchQuery)
+        : [matchedTitle];
       parts.push(
         <a
           key={`${currentId}-link-${match.index}`}
@@ -137,21 +174,21 @@ function renderTextWithLinks(
             document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
           }}
         >
-          {matchedTitle}
+          {linkContent}
         </a>
       );
     } else {
-      parts.push(matchedTitle);
+      parts.push(...highlightText(matchedTitle, searchQuery));
     }
 
     lastIndex = match.index + matchedTitle.length;
   }
 
   if (lastIndex < text.length) {
-    parts.push(text.slice(lastIndex));
+    parts.push(...highlightText(text.slice(lastIndex), searchQuery));
   }
 
-  return parts.length > 0 ? parts : [text];
+  return parts.length > 0 ? parts : highlightText(text, searchQuery);
 }
 
 // Tailwind indentation classes per depth
@@ -173,7 +210,7 @@ function RuleNode({
   titleMap: Map<string, string>;
   searchQuery: string;
 }) {
-  const contentNodes = renderTextWithLinks(node.content, titleMap, node.id);
+  const contentNodes = renderTextWithLinks(node.content, titleMap, node.id, searchQuery);
   const indent = depthStyles[node.depth] || 'ml-16';
 
   const isVisible =
@@ -285,6 +322,7 @@ function TableOfContents({
 
 export default function CRView({ entries }: { entries: CREntry[] }) {
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedQuery = useDebounce(searchQuery, 300);
   const [activeSection, setActiveSection] = useState<number | null>(null);
   const [tocOpen, setTocOpen] = useState(false);
   const mainRef = useRef<HTMLDivElement>(null);
@@ -321,13 +359,13 @@ export default function CRView({ entries }: { entries: CREntry[] }) {
   }, [sections]);
 
   const totalMatches = useMemo(() => {
-    if (!searchQuery) return null;
+    if (!debouncedQuery) return null;
     return entries.filter(
       e =>
-        e.id.includes(searchQuery) ||
-        e.content.toLowerCase().includes(searchQuery.toLowerCase())
+        e.id.includes(debouncedQuery) ||
+        e.content.toLowerCase().includes(debouncedQuery.toLowerCase())
     ).length;
-  }, [searchQuery, entries]);
+  }, [debouncedQuery, entries]);
 
   return (
     <div className="flex gap-6 relative">
@@ -364,9 +402,9 @@ export default function CRView({ entries }: { entries: CREntry[] }) {
           </div>
         )}
 
-        {searchQuery && (
+        {debouncedQuery && (
           <p className="text-sm text-muted-foreground mb-3">
-            {totalMatches} résultat{totalMatches !== 1 ? 's' : ''} pour &laquo;{searchQuery}&raquo;
+            {totalMatches} résultat{totalMatches !== 1 ? 's' : ''} pour &laquo;{debouncedQuery}&raquo;
           </p>
         )}
 
@@ -378,7 +416,7 @@ export default function CRView({ entries }: { entries: CREntry[] }) {
                   key={node.id}
                   node={node}
                   titleMap={titleMap}
-                  searchQuery={searchQuery}
+                  searchQuery={debouncedQuery}
                 />
               ))}
             </div>
@@ -388,4 +426,3 @@ export default function CRView({ entries }: { entries: CREntry[] }) {
     </div>
   );
 }
-

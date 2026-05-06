@@ -2,7 +2,7 @@
 
 import useGame from "@/hooks/use-game";
 import { SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "./ui/sidebar";
-import {ChartLineIcon, LibraryIcon, ScaleIcon, ScanIcon, SearchIcon, WatchIcon} from "lucide-react";
+import {ChartLineIcon, FileTextIcon, LibraryIcon, ScaleIcon, ScanIcon, SearchIcon, WatchIcon} from "lucide-react";
 import Link from "next/link";
 
 const gamesMenus: { [slug: string]: {
@@ -25,6 +25,11 @@ const gamesMenus: { [slug: string]: {
             title: "Rules & Policies",
             url: "/riftbound/policies",
             icon: ScaleIcon,
+        },
+        {
+            title: "Core Rules",
+            url: "/riftbound/rules/cr",
+            icon: FileTextIcon,
         },
         {
             title: "Deck Checker",
