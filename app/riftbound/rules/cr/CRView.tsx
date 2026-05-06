@@ -1,7 +1,8 @@
 'use client';
 
-import { useMemo, useState, useEffect, useRef } from 'react';
+import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import { Input } from '@/components/ui/input';
+import { Link2Icon, CheckIcon } from 'lucide-react';
 
 export interface CREntry {
   id: string;
@@ -191,7 +192,33 @@ function renderTextWithLinks(
   return parts.length > 0 ? parts : highlightText(text, searchQuery);
 }
 
-// Tailwind indentation classes per depth
+function CopyLinkButton({ anchorId }: { anchorId: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = useCallback(() => {
+    const url = `${window.location.origin}${window.location.pathname}#${anchorId}`;
+    window.history.pushState(null, '', `#${anchorId}`);
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  }, [anchorId]);
+
+  return (
+    <button
+      onClick={handleCopy}
+      aria-label="Copier le lien"
+      title="Copier le lien"
+      className="opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity shrink-0 mt-0.5 p-0.5 rounded text-muted-foreground hover:text-foreground"
+    >
+      {copied
+        ? <CheckIcon size={13} className="text-green-500" />
+        : <Link2Icon size={13} />}
+    </button>
+  );
+}
+
+
 const depthStyles: Record<number, string> = {
   1: '',
   2: 'ml-4 sm:ml-6',
@@ -228,10 +255,11 @@ function RuleNode({
 
   if (node.isTitle && node.depth === 1) {
     return (
-      <div id={`rule-${node.id}`} className={`mt-6 scroll-mt-20 ${indent}`}>
-        <h2 className="text-xl font-bold text-primary border-b border-border pb-1 mb-2">
+      <div id={`rule-${node.id}`} className={`mt-6 scroll-mt-20 group ${indent}`}>
+        <h2 className="text-xl font-bold text-primary border-b border-border pb-1 mb-2 flex items-center gap-2">
           <span className="text-muted-foreground text-base font-mono mr-2">{node.id}.</span>
           {node.content}
+          <CopyLinkButton anchorId={`rule-${node.id}`} />
         </h2>
         {node.children.length > 0 && (
           <div className="space-y-1">
@@ -247,7 +275,7 @@ function RuleNode({
   return (
     <div
       id={`rule-${node.id}`}
-      className={`scroll-mt-20 py-0.5 ${indent} ${!isVisible && searchQuery ? 'opacity-30' : ''}`}
+      className={`scroll-mt-20 py-0.5 group ${indent} ${!isVisible && searchQuery ? 'opacity-30' : ''}`}
     >
       <div className="flex gap-2 text-sm leading-relaxed">
         <span className="text-muted-foreground font-mono text-xs shrink-0 mt-0.5 min-w-14 text-right">
@@ -256,6 +284,7 @@ function RuleNode({
         <p className={`flex-1 ${node.depth === 1 ? 'font-semibold text-foreground' : 'text-foreground/90'}`}>
           {contentNodes}
         </p>
+        <CopyLinkButton anchorId={`rule-${node.id}`} />
       </div>
       {node.children.length > 0 && (
         <div className="mt-0.5">
