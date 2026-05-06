@@ -172,6 +172,7 @@ function renderTextWithLinks(
           className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
           onClick={(e) => {
             e.preventDefault();
+            window.history.pushState(null, '', `#${targetId}`);
             document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
           }}
         >
@@ -317,6 +318,7 @@ function TableOfContents({
               href={`#${sec.anchorId}`}
               onClick={(e) => {
                 e.preventDefault();
+                window.history.pushState(null, '', `#${sec.anchorId}`);
                 document.getElementById(sec.anchorId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
               }}
               className={`block px-2 py-1 rounded hover:bg-accent hover:text-accent-foreground transition-colors font-medium ${
@@ -334,6 +336,7 @@ function TableOfContents({
                     href={`#rule-${n.id}`}
                     onClick={(e) => {
                       e.preventDefault();
+                      window.history.pushState(null, '', `#rule-${n.id}`);
                       document.getElementById(`rule-${n.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                     }}
                     className="block px-2 py-0.5 rounded hover:bg-accent hover:text-foreground transition-colors text-muted-foreground text-xs"
