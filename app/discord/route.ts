@@ -73,19 +73,31 @@ async function handleApplicationCommand(
 async function handleCardCommand(
   interaction: APIChatInputApplicationCommandInteraction,
 ) {
+  await rest.post(
+    Routes.interactionCallback(interaction.id, interaction.token),
+    {
+      body: {
+        type: 4,
+        data: {
+          content: "Je cherche cette carte !",
+        },
+      },
+    },
+  );
+
   const name = interaction.data.options?.find(
     (option: { name: string; type: number }) => option.name === "name" && option.type === 3,
   ) as { value: string } | undefined;
   if (!name?.value) {
-    await rest.post(
-      Routes.interactionCallback(interaction.id, interaction.token),
+    await rest.patch(
+      Routes.webhookMessage(
+        interaction.application_id,
+        interaction.token,
+        "@original",
+      ),
       {
         body: {
-          type: 4,
-          data: {
-            content: "Veuillez fournir un nom de carte",
-            flags: 64, // Ephemeral
-          },
+          content: "Veuillez préciser un nom de carte.",
         },
       },
     );
@@ -98,15 +110,15 @@ async function handleCardCommand(
 
   const game = await db.collection<Game>("games").findOne({$or: [{name: gameName?.value ?? 'riftbound'}, {slug: gameName?.value ?? 'riftbound'}]});
   if (!game) {
-    await rest.post(
-      Routes.interactionCallback(interaction.id, interaction.token),
+    await rest.patch(
+      Routes.webhookMessage(
+        interaction.application_id,
+        interaction.token,
+        "@original",
+      ),
       {
         body: {
-          type: 4,
-          data: {
-            content: "Veuillez fournir un nom de jeu.",
-            flags: 64, // Ephemeral
-          },
+          content: "Veuillez fournir un nom de jeu.",
         },
       },
     );
@@ -116,38 +128,40 @@ async function handleCardCommand(
   const card = await db.collection<BoosterCard>("cards").findOne({name: name.value, gameId: game?._id});
 
   if (!card) {
-    await rest.post(
-      Routes.interactionCallback(interaction.id, interaction.token),
+    await rest.patch(
+      Routes.webhookMessage(
+        interaction.application_id,
+        interaction.token,
+        "@original",
+      ),
       {
         body: {
-          type: 4,
-          data: {
-            content: "Cette carte n'a pas été trouvée",
-            flags: 64, // Ephemeral
-          },
+          content: "Cette carte n'a pas été trouvée",
         },
       },
     );
+
     return NextResponse.json({success: true}, {status: 200});
   }
 
   const erratas = await getErratasByCardId(card.id);
 
-  await rest.post(
-    Routes.interactionCallback(interaction.id, interaction.token),
+  await rest.patch(
+    Routes.webhookMessage(
+      interaction.application_id,
+      interaction.token,
+      "@original",
+    ),
     {
       body: {
-        type: 4,
-        data: {
-          embeds: [
-            new EmbedBuilder()
-              .setTitle(card.name)
-              .setURL(`https://tools.joutes.app/${game.slug}/cards/${card.cardId ?? ""}`)
-              .setImage(card.image ?? undefined)
-              .setDescription(`This card has ${erratas.length} erratas.\n\nErratas details:\n${erratas.map((e, index) => `\n${index + 1}. Type: ${e.type}, Details: ${e.details}, Source: ${e.source}, Errata ID: ${e.id}`).join("\n")}`)
-              .toJSON(),
-          ],
-        },
+        embeds: [
+          new EmbedBuilder()
+            .setTitle(card.name)
+            .setURL(`https://tools.joutes.app/${game.slug}/cards/${card.cardId ?? ""}`)
+            .setImage(card.image ?? undefined)
+            .setDescription(`This card has ${erratas.length} erratas.\n\nErratas details:\n${erratas.map((e, index) => `\n${index + 1}. Type: ${e.type}, Details: ${e.details}, Source: ${e.source}, Errata ID: ${e.id}`).join("\n")}`)
+            .toJSON(),
+        ],
       },
     },
   );
