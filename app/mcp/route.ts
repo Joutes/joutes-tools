@@ -6,6 +6,7 @@ import { createMcpHandler } from 'mcp-handler';
 import { z } from 'zod/v3';
 import cr from "@/data/riftbound/cr.json"
 import tr from "@/data/riftbound/tr.json"
+import { Content } from 'next/font/google';
 
 async function handleSearchCard(params: {
     gameName?: string;
@@ -154,6 +155,66 @@ async function handleGetRule(params: {
     };
 }
 
+async function handleSearchRule(params: {
+    gameName: string;
+    query: string;
+}): Promise<{ content: TextContent[]; isError?: boolean }> {
+    const game = await db.collection("games").findOne({ $or: [{ name: params.gameName }, { slug: params.gameName }] });
+
+    if (!game) {
+        return {
+            content: [
+                {
+                    type: "text",
+                    text: `No game found with name "${params.gameName ?? "N/A"}".`
+                }
+            ],
+            isError: false,
+        };
+    }
+
+    let rules: { id: string; content: string }[] = [];
+    // search for matching rules in CR
+    const crRule = cr.find(r => r.content.toLowerCase() === params.query.toLowerCase());
+    if (crRule) {
+        // get sub items for this rule
+        const crSubRules = cr.filter(r => r.id.startsWith(crRule.id + "."));
+        rules.push({ id: `CR${crRule.id}`, content: crRule.content });
+        rules.push(...crSubRules.map(r => ({ id: `CR${r.id}`, content: r.content })));
+
+    }
+    // search for matching rules in TR
+    const trRule = tr.find(r => r.content.toLowerCase() === params.query.toLowerCase());
+    if (trRule) {
+        // get sub items for this rule
+        const trSubRules = tr.filter(r => r.id.startsWith(trRule.id + "."));
+        rules.push({ id: `TR${trRule.id}`, content: trRule.content });
+        rules.push(...trSubRules.map(r => ({ id: `TR${r.id}`, content: r.content })));
+    }
+
+    if (rules.length === 0) {
+        return {
+            content: [
+                {
+                    type: "text",
+                    text: `No rule found with query "${params.query}" in game "${params.gameName ?? "N/A"}".`
+                }
+            ],
+            isError: false,
+        };
+    }
+
+    return {
+        content: [
+            {
+                type: "text",
+                text: `You searched for rule with query "${params.query}" in game "${params.gameName ?? "N/A"}".\n\nRule details:\n${rules.map(r => `${r.id}: ${r.content}`).join("\n")}`,
+            },
+        ],
+        isError: false,
+    };
+}
+
 const handler = createMcpHandler(server => {
     server.registerTool("search_card", {
         title: "Search cards",
@@ -187,6 +248,14 @@ const handler = createMcpHandler(server => {
             id: z.string().describe("ID of the rule. Prefix by type. Example: TR509.4.c.1"),
         },
     }, handleGetRule);
+    server.registerTool("search_rule", {
+        title: "Search rules by query",
+        description: "Search for rules, policies, tournament regulation, keywords...",
+        inputSchema: {
+            gameName: z.string().describe("Name of the game"),
+            query: z.string().describe("Query to search for rules or keywords."),
+        },
+    }, handleSearchRule);
 }, {
     serverInfo: {
         name: "Joutes Tools",
