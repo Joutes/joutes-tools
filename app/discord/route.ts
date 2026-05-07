@@ -43,7 +43,9 @@ export async function POST(req: Request) {
     return handleApplicationCommand(
       body as APIChatInputApplicationCommandInteraction,
     );
-  } else if (body.type === InteractionType.MessageComponent) {}
+  } else if (body.type === InteractionType.MessageComponent) {
+
+  }
 
   return NextResponse.json({ success: true }, { status: 200 });
 }
@@ -51,9 +53,121 @@ export async function POST(req: Request) {
 async function handleApplicationCommand(
   body: APIChatInputApplicationCommandInteraction,
 ) {
-  if (body.data.name === "ask") {
-    return handleAskCommand(body);
+  switch (body.data.name) {
+    case "ask":
+      return handleAskCommand(body);
+    case "card":
+      return handleCardCommand(body);
+    case "rules":
+      return handleRulesCommand(body);
+    case "policies":
+      return handlePoliciesCommand(body);
   }
+}
+
+async function handleCardCommand(
+  interaction: APIChatInputApplicationCommandInteraction,
+) {
+  const name = interaction.data.options?.find(
+    (option) => option.name === "name" && option.type === 3,
+  ) as { value: string } | undefined;
+  if (!name?.value) {
+    await rest.post(
+      Routes.interactionCallback(interaction.id, interaction.token),
+      {
+        body: {
+          type: 4,
+          data: {
+            content: "Veuillez fournir un nom de carte",
+            flags: 64, // Ephemeral
+          },
+        },
+      },
+    );
+    return NextResponse.json({ success: true }, { status: 200 });
+  }
+
+  await rest.post(
+    Routes.interactionCallback(interaction.id, interaction.token),
+    {
+      body: {
+        type: 4,
+        data: {
+          content: "I'm looking into it...",
+        },
+      },
+    },
+  );
+}
+
+async function handleRulesCommand(
+  interaction: APIChatInputApplicationCommandInteraction,
+) {
+  const query = interaction.data.options?.find(
+    (option) => option.name === "query" && option.type === 3,
+  ) as { value: string } | undefined;
+  if (!query?.value) {
+    await rest.post(
+      Routes.interactionCallback(interaction.id, interaction.token),
+      {
+        body: {
+          type: 4,
+          data: {
+            content: "Veuillez fournir une recherche",
+            flags: 64, // Ephemeral
+          },
+        },
+      },
+    );
+    return NextResponse.json({ success: true }, { status: 200 });
+  }
+
+  await rest.post(
+    Routes.interactionCallback(interaction.id, interaction.token),
+    {
+      body: {
+        type: 4,
+        data: {
+          content: "I'm looking into it...",
+        },
+      },
+    },
+  );
+}
+
+async function handlePoliciesCommand(
+  interaction: APIChatInputApplicationCommandInteraction,
+) {
+  const query = interaction.data.options?.find(
+    (option) => option.name === "query" && option.type === 3,
+  ) as { value: string } | undefined;
+  if (!query?.value) {
+    await rest.post(
+      Routes.interactionCallback(interaction.id, interaction.token),
+      {
+        body: {
+          type: 4,
+          data: {
+            content: "Veuillez fournir une recherche",
+            flags: 64, // Ephemeral
+          },
+        },
+      },
+    );
+    return NextResponse.json({ success: true }, { status: 200 });
+  }
+
+  await rest.post(
+    Routes.interactionCallback(interaction.id, interaction.token),
+    {
+      body: {
+        type: 4,
+        data: {
+          content: "I'm looking into it...",
+        },
+      },
+    },
+  );
 }
 
 async function handleAskCommand(
@@ -71,6 +185,18 @@ async function handleAskCommand(
           data: {
             content: "Veuillez fournir un message.",
             flags: 64, // Ephemeral
+          },
+        },
+      },
+    );
+
+    await rest.post(
+      Routes.interactionCallback(interaction.id, interaction.token),
+      {
+        body: {
+          type: 4,
+          data: {
+            content: "I'm looking into it...",
           },
         },
       },

@@ -22,7 +22,43 @@ export async function registerDiscordCommands() {
                     .setDescriptionLocalization('fr', 'Votre message au bot')
                     .setRequired(true)
             )
-            .toJSON()
+            .toJSON(),
+        new SlashCommandBuilder()
+            .setName('card')
+            .setNameLocalization('fr', 'carte')
+            .setDescription('Retrieve info and rulings for a card')
+            .setDescriptionLocalization('fr', 'Récupère les infos et les rulings pour une carte')
+            .addStringOption(option => 
+                option.setName('name')
+                    .setNameLocalization('fr', 'nom')
+                    .setDescription('Name of the card')
+                    .setDescriptionLocalization('fr', 'Nom de la carte')
+                    .setRequired(true)
+            ),
+        new SlashCommandBuilder()
+            .setName('policies')
+            .setNameLocalization('fr', 'politiques')
+            .setDescription('Search policies')
+            .setDescriptionLocalization('fr', 'Recherche les politiques')
+            .addStringOption(option => 
+                option.setName('query')
+                    .setNameLocalization('fr', 'recherche')
+                    .setDescription('Search query')
+                    .setDescriptionLocalization('fr', 'Votre recherche')
+                    .setRequired(true)
+            ),
+        new SlashCommandBuilder()
+            .setName('rules')
+            .setNameLocalization('fr', 'regles')
+            .setDescription('Search rules')
+            .setDescriptionLocalization('fr', 'Recherche les règles')
+            .addStringOption(option => 
+                option.setName('query')
+                    .setNameLocalization('fr', 'recherche')
+                    .setDescription('Search query')
+                    .setDescriptionLocalization('fr', 'Votre recherche')
+                    .setRequired(true)
+            )
     ];
 
     const rest = new REST().setToken(process.env.DISCORD_TOKEN ?? '');
