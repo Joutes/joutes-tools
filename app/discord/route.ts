@@ -113,12 +113,7 @@ async function handleCardCommand(
     return NextResponse.json({success: true}, {status: 200});
   }
 
-  console.log({
-    game: game?._id.toString(),
-    cardName: gameName?.value ?? "",
-  });
-
-  const card = await db.collection<BoosterCard>("cards").findOne({name: name, gameId: game?._id});
+  const card = await db.collection<BoosterCard>("cards").findOne({name: name.value, gameId: game?._id});
 
   if (!card) {
     await rest.post(
