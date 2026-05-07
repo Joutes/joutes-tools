@@ -45,6 +45,18 @@ const gameFeatures: Record<string, GameFeature[]> = {
       url: "/riftbound/game-stats",
       icon: ChartLineIcon,
     },
+    {
+      title: "Règles Complètes",
+      description: "Accédez à la règle complète du jeu pour maîtriser tous les aspects.",
+      url: "/riftbound/rules/cr",
+      icon: LibraryIcon,
+    },
+    {
+      title: "Règlement de Tournoi",
+      description: "Consultez les règles et politiques spécifiques pour les tournois.",
+      url: "/riftbound/rules/tr",
+      icon: LibraryIcon,
+    }
   ],
   swu: [
     {
