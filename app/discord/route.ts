@@ -1,19 +1,24 @@
-import { REST } from "@discordjs/rest";
+import {REST} from "@discordjs/rest";
 import {
   APIChatInputApplicationCommandInteraction,
   InteractionType,
   Routes,
 } from "discord-api-types/v10";
-import { verify } from "discord-verify/node";
-import { NextResponse } from "next/server";
+import {verify} from "discord-verify/node";
+import {NextResponse} from "next/server";
 import crypto from "node:crypto";
+import db from "@/lib/mongodb";
+import {BoosterCard} from "@/lib/types/booster";
+import {Game} from "@/lib/types/game";
+import {EmbedBuilder} from "@discordjs/builders";
+import {getErratasByCardId} from "@/lib/data/erratas";
 
 const agentId = "yGypfIpDEb";
 const aiAllowedDiscordIds = JSON.parse(
   process.env.AI_ALLOWED_DISCORD_IDS ?? "[]",
 ) as string[];
 
-const rest = new REST({ version: "10" }).setToken(
+const rest = new REST({version: "10"}).setToken(
   process.env.DISCORD_TOKEN ?? "",
 );
 
@@ -34,11 +39,11 @@ export async function POST(req: Request) {
 
   if (!isValid) {
     console.warn("Invalid request signature");
-    return NextResponse.json({ success: false }, { status: 403 });
+    return NextResponse.json({success: false}, {status: 403});
   }
 
   if (body.type === 1) {
-    return NextResponse.json({ type: 1 });
+    return NextResponse.json({type: 1});
   } else if (body.type === InteractionType.ApplicationCommand) {
     return handleApplicationCommand(
       body as APIChatInputApplicationCommandInteraction,
@@ -47,7 +52,7 @@ export async function POST(req: Request) {
 
   }
 
-  return NextResponse.json({ success: true }, { status: 200 });
+  return NextResponse.json({success: true}, {status: 200});
 }
 
 async function handleApplicationCommand(
@@ -69,7 +74,7 @@ async function handleCardCommand(
   interaction: APIChatInputApplicationCommandInteraction,
 ) {
   const name = interaction.data.options?.find(
-    (option) => option.name === "name" && option.type === 3,
+    (option: { name: string; type: number }) => option.name === "name" && option.type === 3,
   ) as { value: string } | undefined;
   if (!name?.value) {
     await rest.post(
@@ -84,8 +89,49 @@ async function handleCardCommand(
         },
       },
     );
-    return NextResponse.json({ success: true }, { status: 200 });
+    return NextResponse.json({success: true}, {status: 200});
   }
+
+  const gameName = interaction.data.options?.find(
+    (option: { name: string; type: number }) => option.name === "game" && option.type === 3,
+  ) as { value: string } | undefined;
+
+  const game = await db.collection<Game>("games").findOne({$or: [{name: gameName?.value ?? 'riftbound'}, {slug: gameName?.value ?? 'riftbound'}]});
+  if (!game) {
+    await rest.post(
+      Routes.interactionCallback(interaction.id, interaction.token),
+      {
+        body: {
+          type: 4,
+          data: {
+            content: "Veuillez fournir un nom de jeu.",
+            flags: 64, // Ephemeral
+          },
+        },
+      },
+    );
+    return NextResponse.json({success: true}, {status: 200});
+  }
+
+  const card = await db.collection<BoosterCard>("cards").findOne({name: name, gameId: game?._id});
+
+  if (!card) {
+    await rest.post(
+      Routes.interactionCallback(interaction.id, interaction.token),
+      {
+        body: {
+          type: 4,
+          data: {
+            content: "Cette carte n'a pas été trouvée",
+            flags: 64, // Ephemeral
+          },
+        },
+      },
+    );
+    return NextResponse.json({success: true}, {status: 200});
+  }
+
+  const erratas = await getErratasByCardId(card.id);
 
   await rest.post(
     Routes.interactionCallback(interaction.id, interaction.token),
@@ -93,7 +139,14 @@ async function handleCardCommand(
       body: {
         type: 4,
         data: {
-          content: "I'm looking into it...",
+          embeds: [
+            new EmbedBuilder()
+              .setTitle(card.name)
+              .setURL(`https://tools.joutes.app/${game.slug}/cards/${card.cardId ?? ""}`)
+              .setImage(card.image ?? undefined)
+              .setDescription(`This card has ${erratas.length} erratas.\n\nErratas details:\n${erratas.map((e, index) => `\n${index + 1}. Type: ${e.type}, Details: ${e.details}, Source: ${e.source}, Errata ID: ${e.id}`).join("\n")}`)
+              .toJSON(),
+          ],
         },
       },
     },
@@ -104,7 +157,7 @@ async function handleRulesCommand(
   interaction: APIChatInputApplicationCommandInteraction,
 ) {
   const query = interaction.data.options?.find(
-    (option) => option.name === "query" && option.type === 3,
+    (option: { name: string; type: number }) => option.name === "query" && option.type === 3,
   ) as { value: string } | undefined;
   if (!query?.value) {
     await rest.post(
@@ -119,7 +172,7 @@ async function handleRulesCommand(
         },
       },
     );
-    return NextResponse.json({ success: true }, { status: 200 });
+    return NextResponse.json({success: true}, {status: 200});
   }
 
   await rest.post(
@@ -139,7 +192,7 @@ async function handlePoliciesCommand(
   interaction: APIChatInputApplicationCommandInteraction,
 ) {
   const query = interaction.data.options?.find(
-    (option) => option.name === "query" && option.type === 3,
+    (option: { name: string; type: number }) => option.name === "query" && option.type === 3,
   ) as { value: string } | undefined;
   if (!query?.value) {
     await rest.post(
@@ -154,7 +207,7 @@ async function handlePoliciesCommand(
         },
       },
     );
-    return NextResponse.json({ success: true }, { status: 200 });
+    return NextResponse.json({success: true}, {status: 200});
   }
 
   await rest.post(
@@ -174,7 +227,7 @@ async function handleAskCommand(
   interaction: APIChatInputApplicationCommandInteraction,
 ) {
   const message = interaction.data.options?.find(
-    (option) => option.name === "message" && option.type === 3,
+    (option: { name: string; type: number }) => option.name === "message" && option.type === 3,
   ) as { value: string } | undefined;
   if (!message?.value) {
     await rest.post(
@@ -190,18 +243,7 @@ async function handleAskCommand(
       },
     );
 
-    await rest.post(
-      Routes.interactionCallback(interaction.id, interaction.token),
-      {
-        body: {
-          type: 4,
-          data: {
-            content: "I'm looking into it...",
-          },
-        },
-      },
-    );
-    return NextResponse.json({ success: true }, { status: 200 });
+    return NextResponse.json({success: true}, {status: 200});
   }
 
   const userDiscordId = interaction.user?.id ?? interaction.member?.user?.id;
@@ -218,7 +260,7 @@ async function handleAskCommand(
         },
       },
     );
-    return NextResponse.json({ success: true }, { status: 200 });
+    return NextResponse.json({success: true}, {status: 200});
   }
   if (!aiAllowedDiscordIds.includes(userDiscordId)) {
     await rest.post(
@@ -234,7 +276,7 @@ async function handleAskCommand(
         },
       },
     );
-    return NextResponse.json({ success: true }, { status: 200 });
+    return NextResponse.json({success: true}, {status: 200});
   }
 
   await rest.post(
@@ -278,5 +320,5 @@ async function handleAskCommand(
     },
   );
 
-  return NextResponse.json({ success: true }, { status: 200 });
+  return NextResponse.json({success: true}, {status: 200});
 }

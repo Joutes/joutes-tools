@@ -6,7 +6,6 @@ import {createMcpHandler} from 'mcp-handler';
 import {z} from 'zod/v3';
 import cr from "@/data/riftbound/cr.json"
 import tr from "@/data/riftbound/tr.json"
-import {Content} from 'next/font/google';
 import {Game} from "@/lib/types/game";
 
 async function handleSearchCard(params: {
