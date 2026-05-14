@@ -1,8 +1,6 @@
 import db from "@/lib/mongodb";
 import {Booster, BoosterCard, BoosterCardDb, BoosterDb} from "@/lib/types/booster";
 import {ObjectId} from "bson";
-import {AggregateOperation} from "mongodb/src";
-import {inspect} from "node:util";
 
 export async function createBooster(booster: Omit<Booster, 'id' | 'createdAt'>): Promise<Booster> {
   const result = await db.collection<BoosterDb>('boosters').insertOne({
