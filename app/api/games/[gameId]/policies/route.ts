@@ -1,7 +1,6 @@
 import {NextRequest, NextResponse} from "next/server";
 import {getGameBySlug} from "@/lib/data/games";
 import {requirePermission} from "@/lib/permissions";
-import {searchPolicies} from "@/app/[gameSlug]/policies/action";
 import {countAllPolicies, getAllPolicies} from "@/lib/data/policies";
 import {auth} from "@/lib/auth";
 import {headers} from "next/headers";
