@@ -22,7 +22,7 @@ export default function CollectionCardsPage() {
     setLoading(true);
     try {
       const response = await fetch(
-        `/api/collection/cards?page=${pageNumber}&limit=${limit}`
+        `/api/collection/cards?page=${pageNumber}&limit=${limit}` //&gameSlug=riftbound&type=Legend&setCode=UNL
       );
       if (response.ok) {
         const data = await response.json();

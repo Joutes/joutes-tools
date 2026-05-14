@@ -73,7 +73,7 @@ export async function getBoosters({userId, gameId, page = 0, limit = 20, offset 
         pipeline: [
           {
             $addFields: {
-              id: { $toString: '$id' }
+              id: {$toString: '$id'}
             }
           },
           {$project: {_id: 0, boosterId: 0}}
@@ -139,7 +139,7 @@ export async function getBooster(boosterId: string): Promise<Booster | null> {
 export async function addCardToBooster(boosterId: string, card: Omit<BoosterCard, 'id'>): Promise<void> {
   const booster = await db.collection<BoosterDb>('boosters').findOne({
     _id: new ObjectId(boosterId),
-  }, {projection: {_id: 1, userId: 1 }});
+  }, {projection: {_id: 1, userId: 1}});
   if (!booster) {
     throw new Error('Booster not found');
   }
@@ -175,34 +175,78 @@ export type GroupedCard = {
 };
 
 export async function getUserCards({
-  userId,
-  page = 0,
-  limit = 50,
-}: {
+                                     userId,
+                                     page = 0,
+                                     limit = 50,
+                                     gameId,
+                                     setCode,
+                                     cardType,
+                                   }: {
   userId: string;
   page?: number;
   limit?: number;
+  gameId?: string;
+  setCode?: string;
+  cardType?: string;
 }): Promise<{ cards: GroupedCard[]; total: number }> {
   const skip = page * limit;
 
+  const initialMatch: { setCode?: string; userId: ObjectId } = {
+    userId: new ObjectId(userId),
+  };
+  if (setCode) {
+    initialMatch.setCode = setCode;
+  }
+
   // Agrégation pour grouper les cartes par setCode et collectorNumber
-  const pipeline = [
+  const pipeline: {
+
+  }[] = [
     {
-      $match: {
-        userId: new ObjectId(userId),
-      },
+      $match: initialMatch,
     },
-    {
+  ];
+
+  const cardMatch: { "card.gameId"?: ObjectId; "card.type"?: string } = {};
+  if (gameId) {
+    cardMatch["card.gameId"] = new ObjectId(gameId);
+  }
+  if (cardType) {
+    cardMatch["card.type"] = cardType;
+  }
+  if (gameId || cardType) {
+    pipeline.push({
+        $lookup: {
+          from: 'cards',
+          localField: "cardId",
+          foreignField: "id",
+          as: 'card',
+        }
+      },
+      {
+        $unwind: {
+          path: "$card",
+          preserveNullAndEmptyArrays: true,
+        }
+      },
+      {
+        $match: cardMatch,
+      },
+    )
+  }
+
+  pipeline.push({
       $group: {
         _id: {
           setCode: '$setCode',
           collectorNumber: '$collectorNumber',
         },
-        name: { $first: '$name' },
-        setCode: { $first: '$setCode' },
-        collectorNumber: { $first: '$collectorNumber' },
-        image: { $first: '$image' },
-        quantity: { $sum: 1 },
+        name: {$first: '$name'},
+        setCode: {$first: '$setCode'},
+        collectorNumber: {$first: '$collectorNumber'},
+        image: {$first: '$image'},
+        card: { '$first': '$card' },
+        quantity: {$sum: 1},
       },
     },
     {
@@ -210,13 +254,13 @@ export async function getUserCards({
         setCode: 1,
         collectorNumber: 1,
       },
-    },
-  ];
+    }
+  );
 
   // Compter le total
   const countResult = await db
     .collection<BoosterCardDb>('booster-cards')
-    .aggregate([...pipeline, { $count: 'total' }])
+    .aggregate([...pipeline, {$count: 'total'}])
     .toArray();
 
   const total = countResult.length > 0 ? countResult[0].total : 0;
@@ -226,8 +270,8 @@ export async function getUserCards({
     .collection<BoosterCardDb>('booster-cards')
     .aggregate([
       ...pipeline,
-      { $skip: skip },
-      { $limit: limit },
+      {$skip: skip},
+      {$limit: limit},
       {
         $project: {
           _id: 0,
@@ -236,6 +280,7 @@ export async function getUserCards({
           collectorNumber: 1,
           image: 1,
           quantity: 1,
+          card: 1,
         },
       },
     ])
