@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function POST(request: NextRequest, { params }: { params: Promise<{ gameId: string }> }) {
+export async function POST(request: NextRequest) {
   const session = await auth.api.getSession({
     headers: await headers(),
   });
