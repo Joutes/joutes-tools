@@ -1,5 +1,5 @@
 import {betterAuth} from "better-auth";
-import {emailOTP, jwt} from "better-auth/plugins";
+import {bearer, emailOTP, jwt} from "better-auth/plugins";
 import { mongodbAdapter } from "better-auth/adapters/mongodb";
 import { Resend } from "resend";
 import db from "./mongodb";
@@ -20,6 +20,7 @@ export const auth = betterAuth({
   },
   plugins: [
     jwt(),
+    bearer(),
     passkey(),
     emailOTP({
       async sendVerificationOTP({ email, otp, type }) {
