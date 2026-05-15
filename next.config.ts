@@ -24,7 +24,7 @@ const nextConfig: NextConfig = {
         has: [
           {
             type: 'host',
-            value: 'localhost:5173',
+            value: 'localhost',
           },
         ],
         headers: [
