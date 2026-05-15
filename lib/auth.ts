@@ -54,6 +54,13 @@ export const auth = betterAuth({
       },
     }),
   ],
+  advanced: {
+    defaultCookieAttributes: {
+      sameSite: 'none',
+      secure: true,
+      httpOnly: true,
+    },
+  },
   trustedOrigins: [
     "https://tools.joutes.app",
     "https://beta.joutes.app",
@@ -61,4 +68,3 @@ export const auth = betterAuth({
     "http://localhost:3000",
   ],
 });
-
