@@ -19,5 +19,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: '/api/auth/:path*',
-}
+  matcher: '/api/:path*',
+};
