@@ -14,66 +14,8 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     serverActions: {
-      allowedOrigins: process.env.NODE_ENV === "development" ? ["localhost:3000", process.env.DEV_URL ?? "localhost:3000"] : ["tools.joutes.app", "beta.joutes.app", "http://localhost:5173"],
+      allowedOrigins: process.env.NODE_ENV === "development" ? ["localhost:3000", process.env.DEV_URL ?? "localhost:3000"] : undefined,
     }
-  },
-  async headers() {
-    return [
-      {
-        source: "/api/auth/:path*",
-        has: [
-          {
-            type: 'host',
-            value: 'localhost',
-          },
-        ],
-        headers: [
-          {
-            key: "Access-Control-Allow-Origin",
-            value: "http://localhost:5173",
-          },
-          {
-            key: "Access-Control-Allow-Credentials",
-            value: "true",
-          },
-          {
-            key: "Access-Control-Allow-Methods",
-            value: "GET, POST, PUT, DELETE, OPTIONS",
-          },
-          {
-            key: "Access-Control-Allow-Headers",
-            value: "Content-Type, Authorization",
-          },
-        ],
-      },
-      {
-        source: "/api/auth/:path*",
-        has: [
-          {
-            type: 'host',
-            value: 'beta.joutes.app',
-          },
-        ],
-        headers: [
-          {
-            key: "Access-Control-Allow-Origin",
-            value: "https://beta.joutes.app",
-          },
-          {
-            key: "Access-Control-Allow-Credentials",
-            value: "true",
-          },
-          {
-            key: "Access-Control-Allow-Methods",
-            value: "GET, POST, PUT, DELETE, OPTIONS",
-          },
-          {
-            key: "Access-Control-Allow-Headers",
-            value: "Content-Type, Authorization",
-          },
-        ],
-      },
-    ];
   },
 };
 
