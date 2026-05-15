@@ -14,7 +14,7 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     serverActions: {
-      allowedOrigins: process.env.NODE_ENV === "development" ? ["localhost:3000", process.env.DEV_URL ?? "localhost:3000"] : ["tools.joutes.app", "beta.joutes.app", "localhost:5173"],
+      allowedOrigins: process.env.NODE_ENV === "development" ? ["localhost:3000", process.env.DEV_URL ?? "localhost:3000"] : ["tools.joutes.app", "beta.joutes.app", "http://localhost:5173"],
     }
   },
   async headers() {
