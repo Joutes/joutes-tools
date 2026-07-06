@@ -5,6 +5,7 @@ import { MainSideBar } from "@/components/MainSideBar";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import {GameContextProvider} from "@/hooks/game-context";
 import { Analytics } from "@vercel/analytics/next";
+import Link from "next/link";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -35,9 +36,16 @@ export default function RootLayout({
         <GameContextProvider>
           <SidebarProvider>
             <MainSideBar />
-            <main className="w-full p-4">
-              <SidebarTrigger />
-              {children}
+            <main className="w-full">
+              <Link href="https://joutes.app/games">
+                <div className="bg-primary text-primary-foreground p-2 text-lg font-bold font-mono">
+                  Joutes tools are now available directly inside the main Joutes app. Click here to go the games registry.
+                </div>
+              </Link>
+              <div className=" p-4">
+                <SidebarTrigger />
+                {children}
+              </div>
             </main>
           </SidebarProvider>
         </GameContextProvider>
